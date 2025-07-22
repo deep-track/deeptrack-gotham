@@ -95,13 +95,13 @@ export default function History() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
           <CardContent className="pt-4 sm:pt-6">
             <div className="text-lg sm:text-2xl font-bold">{mockHistory.length}</div>
             <p className="text-xs text-muted-foreground">Total Verifications</p>
           </CardContent>
         </Card>
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
           <CardContent className="pt-4 sm:pt-6">
             <div className="text-lg sm:text-2xl font-bold text-success">
               {mockHistory.filter(item => item.verdict === "Authentic").length}
@@ -109,7 +109,7 @@ export default function History() {
             <p className="text-xs text-muted-foreground">Authentic Images</p>
           </CardContent>
         </Card>
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
           <CardContent className="pt-4 sm:pt-6">
             <div className="text-lg sm:text-2xl font-bold text-destructive">
               {mockHistory.filter(item => item.verdict === "Synthetic").length}
@@ -117,7 +117,7 @@ export default function History() {
             <p className="text-xs text-muted-foreground">Synthetic Images</p>
           </CardContent>
         </Card>
-        <Card className="shadow-md">
+        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
           <CardContent className="pt-4 sm:pt-6">
             <div className="text-lg sm:text-2xl font-bold">
               {Math.round(mockHistory.reduce((acc, item) => acc + item.confidence, 0) / mockHistory.length)}%
@@ -127,7 +127,7 @@ export default function History() {
         </Card>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-lg bg-muted/95 border dark:border-white/20 border-foreground/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
@@ -189,7 +189,7 @@ export default function History() {
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-3">
         {filteredHistory.map((item) => (
-          <Card key={item.id} className="shadow-sm">
+          <Card key={item.id} className="shadow-sm bg-muted/90 border dark:border-white/20 border-foreground/20">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted/20 group flex-shrink-0">
@@ -274,7 +274,7 @@ export default function History() {
       </div>
 
       {/* Desktop Table View */}
-      <Card className="shadow-sm hidden lg:block">
+      <Card className="shadow-sm hidden lg:block bg-muted/95 border dark:border-white/20 border-foreground/20">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
