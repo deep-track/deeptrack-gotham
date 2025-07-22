@@ -66,7 +66,7 @@ width={24} // or 24, 72, etc.
         priority
       />
             <div className="flex flex-col">
-              <h1 className="text-base sm:text-xl font-bold text-black dark:text-white bg-clip-text text-transparent dark:text-white dark:bg-none">
+              <h1 className="text-base sm:text-xl font-bold text-black dark:text-white  dark:text-white dark:bg-none">
                 <span className="hidden sm:inline">Deeptrack Gotham</span>
                 <span className="sm:hidden">Deeptrack</span>
               </h1>

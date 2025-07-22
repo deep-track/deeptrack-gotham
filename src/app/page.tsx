@@ -33,7 +33,7 @@ const handleProceed = () => {
 
       {/* Page Header */}
       <div className="text-center sm:text-left">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white">
+        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">
           AI Image Verification
         </h1>
         <p className="text-muted-foreground mt-2 text-sm sm:text-base">
@@ -44,7 +44,7 @@ const handleProceed = () => {
       {/* Upload Section */}
       <Card className="border border-gray-700 bg-muted/40">
         <CardHeader>
-          <CardTitle className="text-white text-lg">Upload Media</CardTitle>
+          <CardTitle className="dark:text-white text-lg">Upload Media</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <UploadArea
