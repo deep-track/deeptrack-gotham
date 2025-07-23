@@ -32,7 +32,7 @@ export default function Login() {
         </div>
 
         <div className="w-full md:w-1/2 bg-card px-6 py-8 sm:px-8 md:p-12 space-y-6">
-          <h2 className="text-2xl sm:text-3xl font-bold text-primary">Welcome Back</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-primary">Create an account</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Business Email</label>
