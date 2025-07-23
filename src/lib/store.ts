@@ -28,12 +28,14 @@ type DashboardStore = {
   setResultData: (resultData: ResultData[] | ResultData) => void
 }
 
-// ✅ Add <DashboardStore> generic here
 export const useDashboardStore = create<DashboardStore>((set) => ({
   files: [],
   links: [],
   resultData: null,
   setFiles: (files) => set({ files }),
   setLinks: (links) => set({ links }),
-  setResultData: (resultData) => set({ resultData }),
+  setResultData: (resultData) =>
+    set({
+      resultData: Array.isArray(resultData) ? resultData : [resultData],
+    }),
 }))
