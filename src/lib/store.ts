@@ -8,9 +8,11 @@ type DashboardStore = {
   setFiles: (files: File[]) => void
 }
 
-export const useDashboardStore = create<DashboardStore>((set) => ({
-  links: [],
+export const useDashboardStore = create((set) => ({
   files: [],
-  setLinks: (links) => set({ links }),
+  links: [],
+  resultData: null,
   setFiles: (files) => set({ files }),
+  setLinks: (links) => set({ links }),
+  setResultData: (resultData) => set({ resultData }),
 }))

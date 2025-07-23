@@ -20,13 +20,38 @@ export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const router = useRouter()
 
-const handleProceed = () => {
-  useDashboardStore.setState({
-    files: selectedFiles,
-    links: links,
-  })
+const handleProceed = async () => {
+  if (selectedFiles.length === 0) return
+
+  // Read all files as base64
+  const readFiles = selectedFiles.map(
+    file =>
+      new Promise<{ imageBase64: string; fileMeta: any; result: any; timestamp: string }>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = function (e) {
+          const imageBase64 = e.target?.result as string
+          // Mock result data (replace with real API call if needed)
+          resolve({
+            imageBase64,
+            fileMeta: { name: file.name, type: file.type, size: file.size },
+            result: { isAuthentic: true }, // Replace with actual result if needed
+            timestamp: new Date().toISOString(),
+          })
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+  )
+
+  const results = await Promise.all(readFiles)
+
+  // Save all results to the store
+  useDashboardStore.setState({ resultData: results })
+
+  // Navigate to results page (no query param)
   router.push("/results")
 }
+
 
   return (
     <div className="p-4 space-y-6 max-w-3xl mx-auto">

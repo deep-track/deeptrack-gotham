@@ -79,16 +79,14 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
       const url = new URL(imageUrl.trim())
       
       // Check if URL points to an image
-      const response = await fetch(url.toString(), { method: 'HEAD' })
-      const contentType = response.headers.get('content-type')
-      
-      if (!contentType || !contentType.startsWith('image/')) {
-        throw new Error('URL does not point to a valid image')
-      }
-
-      // Fetch the image and convert to File object
       const imageResponse = await fetch(url.toString())
-      const blob = await imageResponse.blob()
+const contentType = imageResponse.headers.get('content-type')
+
+if (!contentType || !contentType.startsWith('image/')) {
+  throw new Error('URL does not point to a valid image')
+}
+
+const blob = await imageResponse.blob()
       
       const fileName = url.pathname.split('/').pop() || 'image-from-url'
       const file = new File([blob], fileName, { type: blob.type })
