@@ -11,8 +11,8 @@ import Dashboard from "./app/page";
 import Results from "./app/results/page";
 import History from "./app/history/page";
 import NotFound from "./app/NotFound";
-import {Signup} from "./app/signup/page";
-import {Login} from "./app/login/page";
+import Signup from "./app/signup/page";
+import Login from "./app/login/page";
 
 const queryClient = new QueryClient();
 
