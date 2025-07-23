@@ -48,6 +48,11 @@ export default function Results() {
       year: 'numeric',
     })
 
+  const isValidStatus = (status: string): status is "authentic" | "fake" | "not-applicable" | "analyzing" => {
+  return ["authentic", "fake", "not-applicable", "analyzing"].includes(status)
+}
+
+  
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Loading Overlay */}
@@ -210,7 +215,7 @@ export default function Results() {
                         key={i}
                         name={item.name}
                         description={item.description}
-                        status={item.status}
+                        status={isValidStatus(item.status) ? item.status : "not-applicable"}
                         confidence={item.confidence}
                       />
                     ))}
