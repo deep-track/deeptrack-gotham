@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.className} bg-background text-foreground`}>
           <Header />
-          <main >
+          <main className="px-6">
             {children}
           </main>
           <Footer />
