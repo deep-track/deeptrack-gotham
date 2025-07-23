@@ -20,15 +20,13 @@ export default function Results() {
   const resultData = useDashboardStore((state) => state.resultData)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Simulate loading delay (replace with actual loading state from your verification process)
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 2000) // 2 seconds delay for demonstration
+    }, 2000) 
     return () => clearTimeout(timer)
   }, [])
 
-  // If no results, show fallback
   if (!Array.isArray(resultData) || resultData.length === 0) {
     return (
       <main className="flex items-center justify-center min-h-[50vh] px-4 text-center">
@@ -42,7 +40,6 @@ export default function Results() {
     )
   }
 
-  // Helper for formatting date
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'short',
