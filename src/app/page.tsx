@@ -15,19 +15,35 @@ export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const router = useRouter()
 
+ type FileMeta = {
+  name: string
+  type: string
+  size: number
+}
+
+type Result = {
+  confidence: number
+  isAuthentic: boolean
+  processingTime: number
+} 
+
 const handleProceed = async () => {
   if (selectedFiles.length === 0) return
 
   const readFiles = selectedFiles.map(
     file =>
-      new Promise<{ imageBase64: string; fileMeta: any; result: any; timestamp: string }>((resolve, reject) => {
+      new Promise<{ imageBase64: string; fileMeta: FileMeta; result: Result; timestamp: string }>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = function (e) {
           const imageBase64 = e.target?.result as string
           resolve({
             imageBase64,
             fileMeta: { name: file.name, type: file.type, size: file.size },
-            result: { isAuthentic: true }, 
+            result: {
+              isAuthentic: true,
+              confidence:  0.95,
+              processingTime: Math.floor(Math.random() * 2000) + 1000
+            },
             timestamp: new Date().toISOString(),
           })
         }
