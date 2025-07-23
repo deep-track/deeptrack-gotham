@@ -2,39 +2,32 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Card, CardHeader, CardContent, CardTitle,
 } from "@/components/ui/card"
 import { UploadArea } from "@/components/upload/upload-area"
 import { useRouter } from "next/navigation"
-import { Plus, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useDashboardStore } from "@/lib/store"
 
 
 export default function Dashboard() {
-  const [linkInput, setLinkInput] = useState("")
-  const [sourceName, setSourceName] = useState("")
-  const [links, setLinks] = useState<{ link: string; source: string }[]>([])
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const router = useRouter()
 
 const handleProceed = async () => {
   if (selectedFiles.length === 0) return
 
-  // Read all files as base64
   const readFiles = selectedFiles.map(
     file =>
       new Promise<{ imageBase64: string; fileMeta: any; result: any; timestamp: string }>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = function (e) {
           const imageBase64 = e.target?.result as string
-          // Mock result data (replace with real API call if needed)
           resolve({
             imageBase64,
             fileMeta: { name: file.name, type: file.type, size: file.size },
-            result: { isAuthentic: true }, // Replace with actual result if needed
+            result: { isAuthentic: true }, 
             timestamp: new Date().toISOString(),
           })
         }
@@ -45,10 +38,8 @@ const handleProceed = async () => {
 
   const results = await Promise.all(readFiles)
 
-  // Save all results to the store
   useDashboardStore.setState({ resultData: results })
 
-  // Navigate to results page (no query param)
   router.push("/results")
 }
 
