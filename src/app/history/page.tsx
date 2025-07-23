@@ -76,7 +76,7 @@ export default function History() {
       if (activeFilter === "synthetic") return item.verdict === "Synthetic"
       return true
     })
-    .filter(item => 
+    .filter(item =>
       item.fileName.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
@@ -145,7 +145,7 @@ export default function History() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="space-y-3 sm:space-y-0 sm:flex sm:flex-wrap sm:gap-3">
               {/* Filter Pills */}
               <div className="flex flex-wrap gap-2">
@@ -169,7 +169,7 @@ export default function History() {
                   </Button>
                 ))}
               </div>
-              
+
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-full sm:w-40">
@@ -194,13 +194,13 @@ export default function History() {
               <div className="flex items-start gap-3">
                 <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted/20 group flex-shrink-0">
 
-                <Image
-                  src={item.thumbnail}
-                  alt="Thumbnail"
-                  width={80}
-                  height={80}
-                  className="object-cover rounded-lg"
-                />
+                  <Image
+                    src={item.thumbnail}
+                    alt="Thumbnail"
+                    width={80}
+                    height={80}
+                    className="object-cover rounded-lg"
+                  />
                 </div>
                 <div className="flex-1 min-w-0 space-y-2">
                   <div>
@@ -212,12 +212,12 @@ export default function History() {
                       <p className="text-xs font-medium">{item.date}</p>
                       <p className="text-xs text-muted-foreground">{item.time}</p>
                     </div>
-                    <Badge 
+                    <Badge
                       variant="outline"
-                      className={`text-xs ${item.verdict === "Authentic" 
-                        ? "border-success text-success bg-success/10" 
+                      className={`text-xs ${item.verdict === "Authentic"
+                        ? "border-success text-success bg-success/10"
                         : "border-destructive text-destructive bg-destructive/10"
-                      }`}
+                        }`}
                     >
                       {item.verdict === "Authentic" ? (
                         <Check className="h-3 w-3 mr-1" />
@@ -231,35 +231,35 @@ export default function History() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium">{item.confidence}%</span>
                       <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-300 ${
-                            item.verdict === "Authentic" ? "bg-success" : "bg-destructive"
-                          }`}
+                        <div
+                          className={`h-full transition-all duration-300 ${item.verdict === "Authentic" ? "bg-success" : "bg-destructive"
+                            }`}
                           style={{ width: `${item.confidence}%` }}
                         />
                       </div>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="gap-1 text-xs"
                       onClick={() => {
-                        router.push('/results', {
-                          state: {
-                            imageBase64: item.thumbnail,
-                            fileMeta: {
-                              name: item.fileName,
-                              type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
-                              size: item.size
-                            },
-                            result: {
-                              confidence: item.confidence,
-                              isAuthentic: item.verdict === "Authentic",
-                              processingTime: Math.floor(Math.random() * 2000) + 1000
-                            },
-                            timestamp: `${item.date}T${item.time}:00.000Z`
-                          }
-                        })
+                        const data = {
+                          imageBase64: item.thumbnail,
+                          fileMeta: {
+                            name: item.fileName,
+                            type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
+                            size: item.size,
+                          },
+                          result: {
+                            confidence: item.confidence,
+                            isAuthentic: item.verdict === "Authentic",
+                            processingTime: Math.floor(Math.random() * 2000) + 1000,
+                          },
+                          timestamp: `${item.date}T${item.time}:00.000Z`,
+                        };
+
+                        localStorage.setItem('verificationData', JSON.stringify(data));
+                        router.push('/results');
                       }}
                     >
                       <Eye className="h-3 w-3" />
@@ -313,10 +313,10 @@ export default function History() {
                       </div>
                     </td>
                     <td className="p-4">
-                      <Badge 
+                      <Badge
                         variant="outline"
-                        className={item.verdict === "Authentic" 
-                          ? "border-success text-success bg-success/10" 
+                        className={item.verdict === "Authentic"
+                          ? "border-success text-success bg-success/10"
                           : "border-destructive text-destructive bg-destructive/10"
                         }
                       >
@@ -332,39 +332,38 @@ export default function History() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{item.confidence}%</span>
                         <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-300 ${
-                              item.verdict === "Authentic" ? "bg-success" : "bg-destructive"
-                            }`}
+                          <div
+                            className={`h-full transition-all duration-300 ${item.verdict === "Authentic" ? "bg-success" : "bg-destructive"
+                              }`}
                             style={{ width: `${item.confidence}%` }}
                           />
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="gap-1"
-onClick={() => {
-  const data = {
-    imageBase64: item.thumbnail,
-    fileMeta: {
-      name: item.fileName,
-      type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
-      size: item.size,
-    },
-    result: {
-      confidence: item.confidence,
-      isAuthentic: item.verdict === "Authentic",
-      processingTime: Math.floor(Math.random() * 2000) + 1000
-    },
-    timestamp: `${item.date}T${item.time}:00.000Z`
-  }
+                        onClick={() => {
+                          const data = {
+                            imageBase64: item.thumbnail,
+                            fileMeta: {
+                              name: item.fileName,
+                              type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
+                              size: item.size,
+                            },
+                            result: {
+                              confidence: item.confidence,
+                              isAuthentic: item.verdict === "Authentic",
+                              processingTime: Math.floor(Math.random() * 2000) + 1000
+                            },
+                            timestamp: `${item.date}T${item.time}:00.000Z`
+                          }
 
-  const query = encodeURIComponent(JSON.stringify(data))
-  router.push(`/results?data=${query}`)
-}}
+                          const query = encodeURIComponent(JSON.stringify(data))
+                          router.push(`/results?data=${query}`)
+                        }}
                       >
                         <Eye className="h-3 w-3" />
                         View
@@ -375,7 +374,7 @@ onClick={() => {
               </tbody>
             </table>
           </div>
-          
+
           {filteredHistory.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
