@@ -7,75 +7,7 @@
 
 @layer base {
 :root {
-  --background: 210 20% 98%;              /* Soft very light background */
-  --foreground: 215 25% 11%;              /* Deep slate for text */
 
-  --card: 0 0% 100%;                      /* White cards */
-  --card-foreground: 215 25% 11%;
-
-  --popover: 0 0% 100%;
-  --popover-foreground: 215 25% 11%;
-
-  --primary: 181 79% 42%;                 /* #15BFBF - aqua-teal */
-  --primary-foreground: 0 0% 100%;
-
-  --accent: 185 97% 13%;                  /* #013A40 - deep green-blue */
-  --accent-foreground: 0 0% 100%;
-
-  --secondary: 210 20% 96%;              /* Pale blue-gray */
-  --secondary-foreground: 215 25% 11%;
-
-  --muted: 210 20% 95%;                  /* Light muted background */
-  --muted-foreground: 215 15% 45%;
-
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
-
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 100%;
-
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
-  --ring: 181 79% 42%;                   /* Match #15BFBF */
-
-  --radius: 0.75rem;
-
-  /* Verification Highlights */
-  --authentic: 142 71% 45%;
-  --authentic-foreground: 0 0% 100%;
-
-  --synthetic: 0 84% 60%;
-  --synthetic-foreground: 0 0% 100%;
-
-  --confidence-bg: 181 79% 96%;          /* Slight tint of #15BFBF */
-
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, hsl(181 79% 42%), hsl(181 79% 52%));
-  --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
-  --gradient-danger: linear-gradient(135deg, hsl(0 84% 60%), hsl(0 84% 70%));
-  --gradient-hero: linear-gradient(135deg, hsl(181 79% 42%) 0%, hsl(142 71% 45%) 100%);
-
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 hsl(181 79% 42% / 0.05);
-  --shadow-md: 0 4px 6px -1px hsl(181 79% 42% / 0.1), 0 2px 4px -2px hsl(181 79% 42% / 0.1);
-  --shadow-lg: 0 10px 15px -3px hsl(181 79% 42% / 0.1), 0 4px 6px -4px hsl(181 79% 42% / 0.1);
-  --shadow-glow: 0 0 40px hsl(181 79% 42% / 0.15);
-
-  /* Sidebar */
-  --sidebar-background: 0 0% 98%;
-  --sidebar-foreground: 215 25% 11%;
-  --sidebar-primary: 181 79% 42%;         /* Aqua */
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 185 97% 13%;          /* Dark cyan */
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-ring: 181 79% 42%;
-}
-
-.dark {
   /* Base */
   --background: 210 10% 5%;        /* #0D0D0D */
   --foreground: 0 0% 100%;         /* #FFFFFF */
@@ -115,6 +47,8 @@
   --input: 210 10% 12%;
   --border: 210 10% 18%;
   --ring: 181 79% 42%;             /* #15BFBF */
+
+  --radius: 0.75rem;
 
   /* Verification Highlights */
   --authentic: 160 70% 45%;

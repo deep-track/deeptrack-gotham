@@ -3,7 +3,6 @@
 import Image from 'next/image'
 import { Shield, Menu, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +11,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useTheme } from '@/components/theme-provider'
 
 
 interface HeaderProps {
@@ -21,7 +19,6 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname();
-    const { theme } = useTheme()
 
 
   return (
@@ -58,7 +55,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
           <div className="flex items-center gap-2 sm:gap-3">
       <Image
-        src={theme === 'dark' ? '/logo-dark.jpg' : '/logo-light.ico'}
+        src={ '/logo-dark.jpg' }
         alt="Logo"
 width={24} // or 24, 72, etc.
   height={24}
@@ -102,7 +99,6 @@ width={24} // or 24, 72, etc.
               <span className="hidden sm:inline">History</span>
             </Link>
           </nav>
-          <ThemeToggle />
         </div>
       </div>
     </header>
