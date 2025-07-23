@@ -11,6 +11,8 @@ import Dashboard from "./app/page";
 import Results from "./app/results/page";
 import History from "./app/history/page";
 import NotFound from "./app/NotFound";
+import {Signup} from "./app/signup/page";
+import {Login} from "./app/login/page";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ const App = () => {
                     <Route path="/results" element={<Results />} />
                     <Route path="/history" element={<History />} />
                     <Route path="*" element={<NotFound />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/login" element={<Login />} />
                   </Routes>
                 </main>
               </div>
