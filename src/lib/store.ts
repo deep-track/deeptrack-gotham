@@ -22,10 +22,10 @@ type ResultData = {
 type DashboardStore = {
   links: { link: string; source: string }[]
   files: File[]
-  resultData: ResultData | null
+  resultData: ResultData[] | null
   setLinks: (links: { link: string; source: string }[]) => void
   setFiles: (files: File[]) => void
-  setResultData: (resultData: ResultData) => void
+  setResultData: (resultData: ResultData[] | ResultData) => void
 }
 
 // ✅ Add <DashboardStore> generic here
