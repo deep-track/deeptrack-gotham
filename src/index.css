@@ -7,23 +7,23 @@
 
 @layer base {
 :root {
-
   /* Base */
-  --background: 210 10% 5%;        /* #0D0D0D */
-  --foreground: 0 0% 100%;         /* #FFFFFF */
+  --background: 210 10% 5%;         /* #0D0D0D */
+  --foreground: 0 0% 100%;          /* #FFFFFF */
 
   /* Surfaces */
-  --card: 210 15% 14%;             /* #1B242B */
+  --card: 210 15% 14%;              /* #1B242B */
   --card-foreground: 0 0% 100%;
 
   --popover: 210 15% 14%;
   --popover-foreground: 0 0% 100%;
 
   /* Primary & Accent */
-  --primary: 181 79% 42%;          /* #15BFBF */
+  --primary: 181 79% 42%;           /* #15BFBF */
+  --primary-hover: 181 79% 48%;
   --primary-foreground: 210 10% 5%;
 
-  --accent: 185 97% 13%;           /* #013A40 */
+  --accent: 185 97% 13%;            /* #013A40 */
   --accent-foreground: 0 0% 100%;
 
   /* Secondary & Muted */
@@ -31,7 +31,7 @@
   --secondary-foreground: 0 0% 100%;
 
   --muted: 210 10% 10%;
-  --muted-foreground: 210 5% 60%;
+  --muted-foreground: 210 5% 65%;
 
   /* Status */
   --success: 160 70% 45%;
@@ -43,12 +43,14 @@
   --destructive: 0 80% 60%;
   --destructive-foreground: 210 10% 5%;
 
-  /* Inputs, borders, rings */
+  /* Input, borders, rings */
   --input: 210 10% 12%;
-  --border: 210 10% 18%;
-  --ring: 181 79% 42%;             /* #15BFBF */
+  --border: 210 10% 20%;
+  --ring: 181 79% 42%;              /* #15BFBF */
 
+  /* UI Radius & Glow */
   --radius: 0.75rem;
+  --radius-lg: 1rem;
 
   /* Verification Highlights */
   --authentic: 160 70% 45%;
@@ -57,13 +59,19 @@
   --synthetic: 0 80% 60%;
   --synthetic-foreground: 210 10% 5%;
 
-  /* Card BG for result confidence */
   --confidence-bg: 210 15% 10%;
 
-  /* Glow / hover */
+  /* Shadow, Glow, Blur */
   --shadow-glow: 0 0 40px hsl(181 79% 42% / 0.25);
+  --glass-bg: hsla(210, 15%, 14%, 0.6);
+  --glass-blur: blur(12px);
+  --glass-border: 1px solid hsla(210, 10%, 60%, 0.08);
 
-  /* Sidebar Structure */
+  /* Gradients */
+  --gradient-primary: linear-gradient(90deg, hsl(181 79% 42%) 0%, hsl(210 100% 70%) 100%);
+  --gradient-accent: linear-gradient(90deg, hsl(185 97% 13%) 0%, hsl(181 79% 42%) 100%);
+
+  /* Sidebar */
   --sidebar-background: 210 10% 5%;
   --sidebar-foreground: 0 0% 100%;
   --sidebar-primary: 181 79% 42%;

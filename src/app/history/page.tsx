@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
+
 
 
 export default function History() {
@@ -86,46 +88,60 @@ export default function History() {
     })
 
   return (
-    <div className="container-responsive space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="container-responsive space-y-4 max-w-5xl sm:space-y-6 animate-fade-in  p-6 sm:p-8">
       <div className="space-y-1 sm:space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Verification History</h1>
+       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+        Verification History</h1>
         <p className="text-sm sm:text-base text-muted-foreground">
           View and manage your previously verified images
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="text-lg sm:text-2xl font-bold">{mockHistory.length}</div>
-            <p className="text-xs text-muted-foreground">Total Verifications</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="text-lg sm:text-2xl font-bold text-success">
-              {mockHistory.filter(item => item.verdict === "Authentic").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Authentic Images</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="text-lg sm:text-2xl font-bold text-destructive">
-              {mockHistory.filter(item => item.verdict === "Synthetic").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Synthetic Images</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-md bg-muted/95 border dark:border-white/20 border-foreground/20">
-          <CardContent className="pt-4 sm:pt-6">
-            <div className="text-lg sm:text-2xl font-bold">
-              {Math.round(mockHistory.reduce((acc, item) => acc + item.confidence, 0) / mockHistory.length)}%
-            </div>
-            <p className="text-xs text-muted-foreground">Avg. Confidence</p>
-          </CardContent>
-        </Card>
+<div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+  {/* Total Verifications */}
+  <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+    <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
+      <div className="text-lg sm:text-4xl font-bold text-white">
+        {mockHistory.length}
       </div>
+      <p className="text-md text-white/60 mt-1">Total Verifications</p>
+    </CardContent>
+  </Card>
+
+  {/* Authentic Images */}
+  <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+    <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
+      <div className="text-lg sm:text-4xl font-bold text-emerald-500/80 ">
+        {mockHistory.filter(item => item.verdict === "Authentic").length}
+      </div>
+      <p className="text-md text-white/60 mt-1">Authentic Images</p>
+    </CardContent>
+  </Card>
+
+  {/* Synthetic Images */}
+  <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+    <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
+      <div className="text-lg sm:text-4xl font-bold text-red-500/80 ">
+        {mockHistory.filter(item => item.verdict === "Synthetic").length}
+      </div>
+      <p className="text-md text-white/60 mt-1">Synthetic Images</p>
+    </CardContent>
+  </Card>
+
+  {/* Average Confidence */}
+  <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+    <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
+      <div className="text-lg sm:text-4xl font-bold bg-gradient-to-r from-[hsl(var(--primary))]/70 to-[#7F5AF0] text-transparent bg-clip-text">
+        {Math.round(
+          mockHistory.reduce((acc, item) => acc + item.confidence, 0) /
+            mockHistory.length
+        )}
+        %
+      </div>
+      <p className="text-md text-white/60 mt-1">Avg. Confidence</p>
+    </CardContent>
+  </Card>
+</div>
 
       <Card className="shadow-lg bg-muted/95 border dark:border-white/20 border-foreground/20">
         <CardHeader>
@@ -154,19 +170,25 @@ export default function History() {
                   { key: "authentic", label: "Authentic", count: mockHistory.filter(h => h.verdict === "Authentic").length },
                   { key: "synthetic", label: "Synthetic", count: mockHistory.filter(h => h.verdict === "Synthetic").length }
                 ].map(filter => (
-                  <Button
-                    key={filter.key}
-                    variant={activeFilter === filter.key ? "default" : "outline"}
-                    size="sm"
-                    className="filter-pill rounded-full text-xs sm:text-sm"
-                    onClick={() => setActiveFilter(filter.key)}
-                  >
-                    <span className="hidden sm:inline">{filter.label}</span>
-                    <span className="sm:hidden">{filter.label.split(' ')[0]}</span>
-                    <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
-                      {filter.count}
-                    </Badge>
-                  </Button>
+<Button
+  key={filter.key}
+  variant="outline"
+  size="sm"
+  className={cn(
+    'filter-pill rounded-full text-xs sm:text-sm transition-all',
+    activeFilter === filter.key
+      ? 'text-white bg-gradient-to-r from-[hsl(var(--primary))]/70 to-[#7F5AF0]/80 shadow-md'
+      : 'text-muted-foreground hover:bg-white/5 hover:text-white',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[hsl(var(--primary))]'
+  )}
+  onClick={() => setActiveFilter(filter.key)}
+>
+  <span className="hidden sm:inline">{filter.label}</span>
+  <span className="sm:hidden">{filter.label.split(' ')[0]}</span>
+  <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+    {filter.count}
+  </Badge>
+</Button>
                 ))}
               </div>
 

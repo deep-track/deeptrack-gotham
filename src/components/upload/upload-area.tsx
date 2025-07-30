@@ -31,15 +31,15 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
-    
+
     const files = Array.from(e.dataTransfer.files)
     const imageFiles = files.filter(file => file.type.startsWith('image/'))
     const rejectedFiles = files.length - imageFiles.length
-    
+
     if (imageFiles.length > 0) {
       onFileSelect(imageFiles)
     }
-    
+
     if (rejectedFiles > 0) {
       toast({
         title: "Some files rejected",
@@ -53,11 +53,11 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
     const files = e.target.files ? Array.from(e.target.files) : []
     const imageFiles = files.filter(file => file.type.startsWith('image/'))
     const rejectedFiles = files.length - imageFiles.length
-    
+
     if (imageFiles.length > 0) {
       onFileSelect(imageFiles)
     }
-    
+
     if (rejectedFiles > 0) {
       toast({
         title: "Some files rejected",
@@ -65,7 +65,7 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
         variant: "destructive"
       })
     }
-    
+
     // Reset input to allow selecting the same files again
     e.target.value = ""
   }, [onFileSelect, toast])
@@ -77,23 +77,23 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
     try {
       // Validate URL format
       const url = new URL(imageUrl.trim())
-      
+
       // Check if URL points to an image
       const imageResponse = await fetch(url.toString())
-const contentType = imageResponse.headers.get('content-type')
+      const contentType = imageResponse.headers.get('content-type')
 
-if (!contentType || !contentType.startsWith('image/')) {
-  throw new Error('URL does not point to a valid image')
-}
+      if (!contentType || !contentType.startsWith('image/')) {
+        throw new Error('URL does not point to a valid image')
+      }
 
-const blob = await imageResponse.blob()
-      
+      const blob = await imageResponse.blob()
+
       const fileName = url.pathname.split('/').pop() || 'image-from-url'
       const file = new File([blob], fileName, { type: blob.type })
-      
+
       onFileSelect([file])
       setImageUrl("")
-      
+
       toast({
         title: "Image loaded successfully",
         description: "Image from URL has been added for verification",
@@ -128,13 +128,13 @@ const blob = await imageResponse.blob()
             <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-        
+
         <div className="space-y-4">
           <div className="text-sm text-muted-foreground">
             <p>Total files: {selectedFiles.length}</p>
             <p>Total size: {(selectedFiles.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024).toFixed(2)} MB</p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4" role="list" aria-label="Selected images for verification">
             {selectedFiles.map((file, index) => (
               <div key={index} className="relative group" role="listitem">
@@ -160,7 +160,6 @@ const blob = await imageResponse.blob()
   return (
     <Card
       className={cn(
-        "upload-area p-6 sm:p-8 md:p-12 text-center cursor-pointer transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20",
         isDragOver && "dragover"
       )}
       onDragOver={handleDragOver}
@@ -177,13 +176,22 @@ const blob = await imageResponse.blob()
         }
       }}
     >
-      <div className="flex flex-col items-center gap-4">
-        <div className="p-4 rounded-full bg-primary/10" aria-hidden="true">
-          <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+<div className="flex flex-col items-center gap-4 p-6 sm:p-8 md:p-12 text-center cursor-pointer 
+  bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] 
+  border border-white/10 
+  shadow-[0_0_30px_hsl(var(--primary)/0.1)] 
+  rounded-[var(--radius-lg)] 
+  transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/20 upload-area">
+        <div
+          className="p-3 rounded-full bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]"
+          aria-hidden="true"
+        >
+          <Upload className="h-5 w-5 sm:h-8 sm:w-8 text-muted" />
         </div>
-        
-        <div className="space-y-2">
-          <h3 className="text-lg sm:text-xl font-semibold">Upload Images for Verification</h3>
+
+
+        <div className="space-y-2 text-center">
+          <h3 className="sm:text-xl font-semibold text-white">Upload Images for Verification</h3>
           <p className="text-muted-foreground text-sm sm:text-base">
             Drag and drop your images here, or click to browse files
           </p>
@@ -192,8 +200,8 @@ const blob = await imageResponse.blob()
           </p>
         </div>
 
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="mt-4 min-h-10 focus:ring-4 focus:ring-primary/20"
           onClick={(e) => {
             e.stopPropagation()
@@ -205,8 +213,8 @@ const blob = await imageResponse.blob()
 
         <div className="w-full mt-6 pt-6 border-t border-border">
           <div className="flex items-center gap-2 mb-3 justify-center">
-            <Link className="h-4 w-4 text-primary" aria-hidden="true" />
-            <h4 className="text-sm font-medium">Or add from URL</h4>
+            <Link className="h-4 w-4 text-[hsl(var(--primary))]" aria-hidden="true" />
+            <h4 className="text-sm font-medium text-white">Or add from URL</h4>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full max-w-md mx-auto">
             <Input
@@ -220,17 +228,17 @@ const blob = await imageResponse.blob()
                   handleUrlSubmit()
                 }
               }}
-              className="flex-1 focus:ring-4 focus:ring-primary/20"
+              className="flex-1 focus:ring-4 focus:ring-primary/20 text-md"
               aria-label="Image URL input"
               onClick={(e) => e.stopPropagation()}
             />
-            <Button 
+            <Button
               onClick={(e) => {
                 e.stopPropagation()
                 handleUrlSubmit()
               }}
               disabled={!imageUrl.trim() || isLoadingUrl}
-              className="min-h-10 focus:ring-4 focus:ring-primary/20"
+              className="min-h-10 focus:ring-4 focus:ring-primary/20 bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]"
               size="sm"
               aria-label={isLoadingUrl ? "Loading image from URL" : "Add image from URL"}
             >

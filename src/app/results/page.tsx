@@ -77,8 +77,9 @@ export default function Results() {
       )}
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-8">Verification Results</h1>
+      <main className="container mx-auto px-4 py-4 max-w-6xl">
+        <h1 className="text-3xl p-4 sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+          Verification Results</h1>
         
         <div className="grid grid-cols-1 gap-8">
           {resultData.map((result: ResultProps, idx: number) => {
