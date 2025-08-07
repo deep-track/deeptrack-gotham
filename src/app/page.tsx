@@ -84,29 +84,28 @@ export default function Dashboard() {
       </header>
 
       {/* Upload Section */}
-<div className="relative rounded-[var(--radius-lg)] p-[2px] bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]">
-  <div className="rounded-[inherit] bg-[rgb(10,10,10)] dark:bg-[rgb(10,10,10)]"> {/* Opaque middle layer */}
-    <Card className="w-full bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] rounded-[var(--radius-lg)] shadow-[0_0_20px_hsl(var(--primary)/0.1)] transition hover:shadow-[0_0_30px_hsl(var(--primary)/0.25)]">
-      <CardHeader>
-        <CardTitle className="text-white text-lg sm:text-xl font-semibold">
-          Upload Media
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        <UploadArea
-          onFileSelect={(files) => setSelectedFiles(files)}
-          selectedFiles={selectedFiles}
-          onClearFiles={() => setSelectedFiles([])}
-        />
-        <p className="text-xs text-muted-foreground">
-          Max file size 300MB. Accepted formats: MP4, WebM.
-        </p>
-      </CardContent>
-    </Card>
-  </div>
-</div>
+      <div className="relative rounded-[var(--radius-lg)] p-[2px] bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]">
+        <div className="rounded-[inherit] bg-[rgb(10,10,10)] dark:bg-[rgb(10,10,10)]"> {/* Opaque middle layer */}
+          <Card className="w-full bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] rounded-[var(--radius-lg)] shadow-[0_0_20px_hsl(var(--primary)/0.1)] transition hover:shadow-[0_0_30px_hsl(var(--primary)/0.25)]">
+            <CardHeader>
+              <CardTitle className="text-white text-lg sm:text-xl font-semibold">
+                Upload Media
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <UploadArea
+                onFileSelect={(files) => setSelectedFiles(files)}
+                selectedFiles={selectedFiles}
+                onClearFiles={() => setSelectedFiles([])}
+              />
+              <p className="text-xs text-muted-foreground">
+                Max file size 300MB. Accepted formats: MP4, WebM.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* Selected Files */}
       {/* Final CTA */}
       <div>
         <Button

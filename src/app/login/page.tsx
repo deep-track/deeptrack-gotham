@@ -92,7 +92,8 @@ export default function Login() {
             >
               <div className="p-1 bg-white rounded-full">
                 <Image src="/facebook-logo.png" alt="Facebook" width={18} height={18} />
-              </div>              Continue with Facebook
+              </div>
+              Continue with Facebook
             </button>
           </div>
 

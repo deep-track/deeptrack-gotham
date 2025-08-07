@@ -8,22 +8,22 @@
 @layer base {
 :root {
   /* Base */
-  --background: 210 10% 5%;         /* #0D0D0D */
-  --foreground: 0 0% 100%;          /* #FFFFFF */
+  --background: 210 10% 5%;         
+  --foreground: 0 0% 100%;       
 
   /* Surfaces */
-  --card: 210 15% 14%;              /* #1B242B */
+  --card: 210 15% 14%;              
   --card-foreground: 0 0% 100%;
 
   --popover: 210 15% 14%;
   --popover-foreground: 0 0% 100%;
 
   /* Primary & Accent */
-  --primary: 181 79% 42%;           /* #15BFBF */
+  --primary: 181 79% 42%;         
   --primary-hover: 181 79% 48%;
   --primary-foreground: 210 10% 5%;
 
-  --accent: 185 97% 13%;            /* #013A40 */
+  --accent: 185 97% 13%;            
   --accent-foreground: 0 0% 100%;
 
   /* Secondary & Muted */
@@ -46,7 +46,7 @@
   /* Input, borders, rings */
   --input: 210 10% 12%;
   --border: 210 10% 20%;
-  --ring: 181 79% 42%;              /* #15BFBF */
+  --ring: 181 79% 42%;              
 
   /* UI Radius & Glow */
   --radius: 0.75rem;
@@ -71,16 +71,6 @@
   --gradient-primary: linear-gradient(90deg, hsl(181 79% 42%) 0%, hsl(210 100% 70%) 100%);
   --gradient-accent: linear-gradient(90deg, hsl(185 97% 13%) 0%, hsl(181 79% 42%) 100%);
 
-  /* Sidebar */
-  --sidebar-background: 210 10% 5%;
-  --sidebar-foreground: 0 0% 100%;
-  --sidebar-primary: 181 79% 42%;
-  --sidebar-primary-foreground: 210 10% 5%;
-  --sidebar-accent: 185 97% 13%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 210 10% 18%;
-  --sidebar-ring: 181 79% 42%;
-  --sidebar-gradient: linear-gradient(180deg, hsl(210 10% 5%) 0%, hsl(210 10% 10%) 100%);
 }
 }
 
@@ -96,7 +86,6 @@
 }
 
 @layer components {
-  /* AI Platform Component Styles */
   .gradient-primary {
     background: var(--gradient-primary);
   }
@@ -129,7 +118,6 @@
     background-color: hsl(var(--confidence-bg));
   }
   
-  /* Upload Area Styles - Enhanced for Accessibility */
   .upload-area {
     @apply border-2 border-dashed border-muted-foreground/30 bg-muted/20 hover:border-primary/50 hover:bg-muted/30 transition-all duration-300 ease-out;
   }
@@ -150,7 +138,6 @@
     transform: scale(1.01) translateY(-2px);
   }
   
-  /* High contrast mode support */
   @media (prefers-contrast: high) {
     .upload-area {
       @apply border-4 border-foreground;
@@ -162,12 +149,10 @@
     }
   }
   
-  /* Smooth Transitions */
   .theme-transition {
     @apply transition-colors duration-300 ease-in-out;
   }
 
-  /* Circular progress animations */
   @keyframes circle-progress {
     from {
       stroke-dasharray: 0 251.2;
@@ -178,7 +163,6 @@
     animation: circle-progress 1.5s ease-out forwards;
   }
 
-  /* Filter pill styles */
   .filter-pill {
     transition: all 0.2s ease;
   }
@@ -187,7 +171,6 @@
     transform: translateY(-1px);
   }
 
-  /* Row hover effects */
   .history-row {
     transition: all 0.2s ease;
   }
@@ -198,7 +181,6 @@
     box-shadow: 0 4px 12px hsl(var(--shadow) / 0.15);
   }
 
-  /* Responsive Design System */
   .container-responsive {
     @apply max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8;
   }
@@ -227,7 +209,6 @@
     @apply transition-transform duration-200 hover:scale-105;
   }
 
-  /* Mobile-first responsive utilities */
   .mobile-stack {
     @apply flex flex-col space-y-3 sm:space-y-4;
   }
@@ -252,9 +233,6 @@
     @apply m-3 sm:m-4 md:m-6;
   }
 
-  /* Accessibility Improvements */
-  
-  /* Skip link for keyboard navigation */
   .sr-only {
     @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
   }
@@ -263,12 +241,10 @@
     @apply static w-auto h-auto p-4 m-0 overflow-visible whitespace-normal;
   }
   
-  /* Enhanced focus indicators */
   .focus\:ring-4:focus {
     @apply ring-4 ring-primary/20 outline-none;
   }
   
-  /* Reduced motion support */
   @media (prefers-reduced-motion: reduce) {
     * {
       animation-duration: 0.01ms !important;
@@ -282,7 +258,6 @@
     }
   }
   
-  /* High contrast mode enhancements */
   @media (prefers-contrast: high) {
     .text-muted-foreground {
       @apply text-foreground/80;
@@ -293,14 +268,12 @@
     }
   }
   
-  /* Large text mode support */
   @media (min-resolution: 192dpi) {
     .responsive-text {
       @apply text-base sm:text-lg;
     }
   }
 
-  /* Theme transition for all elements */
   * {
     transition: background-color var(--transition-theme), border-color var(--transition-theme), color var(--transition-theme);
   }
