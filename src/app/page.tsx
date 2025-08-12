@@ -13,56 +13,45 @@ import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useDashboardStore } from "@/lib/store"
 import { motion } from "framer-motion"
+import { Loader2 } from "lucide-react"
 
 export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
   const router = useRouter()
-
-  type FileMeta = {
-    name: string
-    type: string
-    size: number
-  }
-
-  type Result = {
-    confidence: number
-    isAuthentic: boolean
-    processingTime: number
-  }
 
   const handleProceed = async () => {
     if (selectedFiles.length === 0) return
 
-    const readFiles = selectedFiles.map(
-      file =>
-        new Promise<{
-          imageBase64: string
-          fileMeta: FileMeta
-          result: Result
-          timestamp: string
-        }>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = function (e) {
-            const imageBase64 = e.target?.result as string
-            resolve({
-              imageBase64,
-              fileMeta: { name: file.name, type: file.type, size: file.size },
-              result: {
-                isAuthentic: true,
-                confidence: 0.95,
-                processingTime: Math.floor(Math.random() * 2000) + 1000,
-              },
-              timestamp: new Date().toISOString(),
-            })
-          }
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
-    )
+    setIsProcessing(true)
 
-    const results = await Promise.all(readFiles)
-    useDashboardStore.setState({ resultData: results })
-    router.push("/results")
+    try {
+      const results = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const formData = new FormData()
+          formData.append('media', file)
+
+          const response = await fetch('/api/check-media', {
+            method: 'POST',
+            body: formData,
+          })
+
+          if (!response.ok) {
+            throw new Error(`Failed to process ${file.name}`)
+          }
+
+          return await response.json()
+        })
+      )
+
+      useDashboardStore.setState({ resultData: results })
+      router.push("/results")
+    } catch (error) {
+      console.error('Error processing files:', error)
+      // You might want to show an error toast here
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -85,7 +74,7 @@ export default function Dashboard() {
 
       {/* Upload Section */}
       <div className="relative rounded-[var(--radius-lg)] p-[2px] bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]">
-        <div className="rounded-[inherit] bg-[rgb(10,10,10)] dark:bg-[rgb(10,10,10)]"> {/* Opaque middle layer */}
+        <div className="rounded-[inherit] bg-[rgb(10,10,10)] dark:bg-[rgb(10,10,10)]">
           <Card className="w-full bg-[var(--glass-bg)] backdrop-blur-[var(--glass-blur)] rounded-[var(--radius-lg)] shadow-[0_0_20px_hsl(var(--primary)/0.1)] transition hover:shadow-[0_0_30px_hsl(var(--primary)/0.25)]">
             <CardHeader>
               <CardTitle className="text-white text-lg sm:text-xl font-semibold">
@@ -99,7 +88,7 @@ export default function Dashboard() {
                 onClearFiles={() => setSelectedFiles([])}
               />
               <p className="text-xs text-muted-foreground">
-                Max file size 300MB. Accepted formats: MP4, WebM.
+                Max file size 300MB. Accepted formats: JPG, PNG, MP4, WebM.
               </p>
             </CardContent>
           </Card>
@@ -110,15 +99,24 @@ export default function Dashboard() {
       <div>
         <Button
           onClick={handleProceed}
+          disabled={selectedFiles.length === 0 || isProcessing}
           className={cn(
             "w-full",
-            "bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 ",
+            "bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70",
             "text-[hsl(var(--primary-foreground))]",
             "text-base font-medium py-5 rounded-[var(--radius)]",
-            "shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all"
+            "shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
           )}
         >
-          Save and proceed to view results
+          {isProcessing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Analyze Media with Deeptrack"
+          )}
         </Button>
       </div>
     </motion.div>
