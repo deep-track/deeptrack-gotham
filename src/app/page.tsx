@@ -73,10 +73,10 @@ export default function Dashboard() {
       {/* Page Header */}
       <header className="text-center sm:text-left space-y-3">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
-          AI Image Verification
+          AI Image & Audio Verification
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
-          Upload images to verify their authenticity using advanced AI algorithms.
+          Upload images and audio to verify their authenticity using advanced AI algorithms.
         </p>
         <hr className="border-t border-[hsl(var(--border))] opacity-20 mt-4" />
       </header>

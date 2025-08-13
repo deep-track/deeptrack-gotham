@@ -128,13 +128,6 @@ export default function Signup() {
               <Image src="/google-icon.svg" alt="Google" width={20} height={20} />
               Continue with Google
             </button>
-
-            <button onClick={withFacebook} className="flex items-center justify-center gap-2 w-full bg-[#1877F2] hover:bg-[#1877F8] text-white py-2 rounded-md hover:brightness-110 transition">
-              <div className="p-1 bg-white rounded-full">
-                <Image src="/facebook-logo.png" alt="Facebook" width={18} height={18} />
-              </div>
-              Continue with Facebook
-            </button>
           </div>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">

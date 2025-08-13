@@ -124,7 +124,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             <div className="flex flex-col leading-tight">
               <span className="text-sm sm:text-base font-semibold text-white">Deeptrack Gotham</span>
               <span className="text-xs text-muted-foreground hidden sm:inline">
-                Deepfakes Verification
+                Deepfakes Detection
               </span>
             </div>
           </Link>
