@@ -1,17 +1,51 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { useState } from 'react'
-import Link from 'next/link'
+import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { auth, googleProvider, facebookProvider } from "@/lib/firebase";
+import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    alert('Login successful!')
-    console.log({ email, password })
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/"); // your dashboard
+    } catch (e: any) {
+      setErr(mapFirebaseError(e?.code));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loginWithGoogle() {
+    setErr(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      router.push("/");
+    } catch (e: any) {
+      setErr(mapFirebaseError(e?.code));
+    }
+  }
+
+  async function loginWithFacebook() {
+    setErr(null);
+    try {
+      await signInWithPopup(auth, facebookProvider);
+      router.push("/");
+    } catch (e: any) {
+      setErr(mapFirebaseError(e?.code));
+    }
   }
 
   return (
@@ -20,18 +54,16 @@ export default function Login() {
 
         {/* Left image */}
         <div className="w-full md:w-1/2 flex items-center justify-center p-6">
-          <Image
-            src="/deeptrack-security.svg"
-            alt="Login Illustration"
-            className="object-contain h-full w-full"
-            width={400}
-            height={400}
-          />
+          <Image src="/deeptrack-security.svg" alt="Login Illustration" className="object-contain h-full w-full" width={400} height={400} />
         </div>
 
         {/* Right form area */}
         <div className="w-full md:w-1/2 px-6 py-10 sm:px-10 md:p-14 space-y-6">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">Welcome Back</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+            Welcome Back
+          </h2>
+
+          {err && <p className="text-sm text-red-500">{err}</p>}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -65,9 +97,10 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r  from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-150 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-150 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
             >
-              Log In
+              {loading ? "Logging in..." : "Log In"}
             </button>
           </form>
 
@@ -80,16 +113,12 @@ export default function Login() {
 
           {/* Social Buttons */}
           <div className="flex flex-col gap-4">
-            <button
-              className="flex items-center justify-center gap-2 w-full bg-white/5 text-white py-2 rounded-md hover:bg-gray-100 transition border border-border"
-            >
+            <button onClick={loginWithGoogle} className="flex items-center justify-center gap-2 w-full bg-white/5 text-white py-2 rounded-md hover:bg-gray-100 hover:text-muted-foreground transition border border-border">
               <Image src="/google-icon.svg" alt="Google" width={20} height={20} />
               Continue with Google
             </button>
 
-            <button
-              className="flex items-center justify-center gap-2 w-full bg-[#1877F2] text-white py-2 rounded-md hover:brightness-110 transition"
-            >
+            <button onClick={loginWithFacebook} className="flex items-center justify-center gap-2 w-full bg-[#1877F2] hover:bg-[#1877F8] text-white py-2 rounded-md hover:brightness-110 transition">
               <div className="p-1 bg-white rounded-full">
                 <Image src="/facebook-logo.png" alt="Facebook" width={18} height={18} />
               </div>
@@ -98,7 +127,7 @@ export default function Login() {
           </div>
 
           <div className="mt-4 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-white hover:underline">
               Create one
             </Link>
@@ -106,5 +135,21 @@ export default function Login() {
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+function mapFirebaseError(code?: string): string {
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      return "Incorrect email or password.";
+    case "auth/user-not-found":
+      return "No account found with that email.";
+    case "auth/popup-closed-by-user":
+      return "The sign-in popup was closed before completing.";
+    case "auth/account-exists-with-different-credential":
+      return "This email exists with a different provider. Try another method then link accounts.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
 }

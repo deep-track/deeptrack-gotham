@@ -2,6 +2,7 @@ import '../index.css';
 import { Inter } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import Providers from '@/app/providers';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,7 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-screen flex flex-col">
           <Header />
           <div className="flex flex-1 overflow-hidden">
-            <main className="flex-1 overflow-y-auto p-4">{children}</main>
+            <main className="flex-1 overflow-y-auto p-4">
+              <Providers>
+                {children}
+              </Providers>
+            </main>
           </div>
           <Footer />
         </div>

@@ -14,11 +14,15 @@ import { cn } from "@/lib/utils"
 import { useDashboardStore } from "@/lib/store"
 import { motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
+import { useAuth } from "@/app/providers";
+import { useEffect } from "react";
 
 export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const router = useRouter()
+  const { user, loading } = useAuth();
+
 
   const handleProceed = async () => {
     if (selectedFiles.length === 0) return
@@ -53,6 +57,11 @@ export default function Dashboard() {
       setIsProcessing(false)
     }
   }
+
+     useEffect(() => {
+      if (!loading && !user) router.replace("/login");
+    }, [user, loading, router]);
+
 
   return (
     <motion.div

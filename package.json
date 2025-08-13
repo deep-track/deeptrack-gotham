@@ -2,13 +2,14 @@
   "name": "gotham-image-verify",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+    "scripts": {
     "preinstall": "npx npm-force-resolutions",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
+  
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -44,6 +45,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "firebase": "^12.1.0",
     "framer-motion": "^12.23.11",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
@@ -64,6 +66,7 @@
     "zod": "^3.23.8",
     "zustand": "^5.0.6"
   },
+
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@eslint/js": "^9.9.0",

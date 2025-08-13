@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Shield, History, LogIn, UserPlus } from 'lucide-react'
+import { Menu, Shield, History, LogIn, UserPlus, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -12,6 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { auth } from '@/lib/firebase'
+
 
 interface HeaderProps {
   onMenuToggle?: () => void
@@ -19,15 +23,18 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const pathname = usePathname()
+  const [user, setUser] = useState(null)
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+    })
+    return () => unsub()
+  }, [])
 
   const primaryNav = [
     { href: '/', label: 'Dashboard', icon: <Shield className="h-4 w-4" /> },
     { href: '/history', label: 'History', icon: <History className="h-4 w-4" /> },
-  ]
-
-  const authNav = [
-    { href: '/login', label: 'Log In', icon: <LogIn className="h-4 w-4" /> },
-    { href: '/signup', label: 'Sign Up', icon: <UserPlus className="h-4 w-4" /> },
   ]
 
   const navLinkClass = (href: string) =>
@@ -59,7 +66,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               align="start"
               className="w-52 rounded-xl border border-white/10 bg-background/80 backdrop-blur-md animate-in fade-in slide-in-from-top-2"
             >
-              {[...primaryNav, ...authNav].map((item) => (
+              {primaryNav.map((item) => (
                 <DropdownMenuItem asChild key={item.href}>
                   <Link
                     href={item.href}
@@ -70,6 +77,37 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   </Link>
                 </DropdownMenuItem>
               ))}
+
+              {!user ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Log In
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/signup"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Sign Up
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem
+                  onClick={() => signOut(auth)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -103,28 +141,77 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md"
-              >
-                Account
-              </Button>
+              {user ? (
+                <button className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/5 hover:backdrop-blur-md">
+                  {/* Avatar with initials fallback */}
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+                    {user.photoURL ? (
+                      <img
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || "User")}&background=random&color=fff&size=128`}
+                        alt={user.displayName || "User"}
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      (user.displayName?.[0] || user.email?.[0] || "?").toUpperCase()
+                    )}
+                  </div>
+                  <span className="hidden sm:inline text-sm">
+                    Account
+                  </span>
+                </button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md"
+                >
+                  Account
+                </Button>
+              )}
             </DropdownMenuTrigger>
+
             <DropdownMenuContent
               align="end"
-              className="w-40 rounded-xl border border-white/10 bg-background/80 backdrop-blur-md"
+              className="w-56 rounded-xl border border-white/10 bg-background/80 backdrop-blur-md"
             >
-              {authNav.map((item) => (
-                <DropdownMenuItem asChild key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
+              {!user ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/login"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Log In
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/signup"
+                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Sign Up
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  {/* User Info Header */}
+                  <div className="px-3 py-2 border-b border-white/10">
+                    <p className="text-sm font-medium">{user.displayName || "User"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+
+                  {/* Logout Button */}
+                  <DropdownMenuItem
+                    onClick={() => signOut(auth)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-white/5 hover:text-white transition-colors"
                   >
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                </DropdownMenuItem>
-              ))}
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
