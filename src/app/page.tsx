@@ -78,7 +78,7 @@ useEffect(() => {
           AI Image & Audio Verification
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
-          Upload images and audio to verify their authenticity using advanced AI algorithms.
+          Upload images (JPG, PNG) and audio files (MP3, WAV) to verify their authenticity using advanced AI detection algorithms.
         </p>
         <hr className="border-t border-[hsl(var(--border))] opacity-20 mt-4" />
       </header>
@@ -99,7 +99,7 @@ useEffect(() => {
                 onClearFiles={() => setSelectedFiles([])}
               />
               <p className="text-xs text-muted-foreground">
-                Max file size 300MB. Accepted formats: JPG, PNG, MP4, WebM.
+                Max file size 300MB. Accepted formats: JPG, PNG, MP3, WAV, MP4, WebM.
               </p>
             </CardContent>
           </Card>
