@@ -1,36 +1,30 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Menu, Shield, History, LogIn, UserPlus, LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useClerk, useUser } from "@clerk/nextjs"
+import { createPortal } from "react-dom"
+import { Menu, Shield, History, LogIn, UserPlus, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
-import { onAuthStateChanged, signOut } from 'firebase/auth'
-import { auth } from '@/lib/firebase'
+} from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+import Image from "next/image"
+import { usePathname } from "next/navigation"
 
-
-interface HeaderProps {
-  onMenuToggle?: () => void
-}
-
-export function Header({ onMenuToggle }: HeaderProps) {
+export function Header() {
+  const { user, isSignedIn } = useUser()
+  const { signOut } = useClerk()
+  const router = useRouter()
+  const [modalOpen, setModalOpen] = useState(false)
+  const [inputValue, setInputValue] = useState("")
+  const [loading, setLoading] = useState(false)
   const pathname = usePathname()
-  const [user, setUser] = useState(null)
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-    })
-    return () => unsub()
-  }, [])
 
   const primaryNav = [
     { href: '/', label: 'Dashboard', icon: <Shield className="h-4 w-4" /> },
@@ -45,12 +39,80 @@ export function Header({ onMenuToggle }: HeaderProps) {
         : 'text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md'
     )
 
+  const handleDelete = async () => {
+    if (inputValue !== "DELETE") return;
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/delete-account", { method: "POST" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Server error:", data);
+        throw new Error("Failed to delete account");
+      }
+
+      await signOut();
+      router.push("/");
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete account. Try again later.");
+    } finally {
+      setLoading(false);
+      setModalOpen(false);
+      setInputValue("");
+    }
+  };
+
+  const modal = modalOpen && createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={() => setModalOpen(false)}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-background/90 backdrop-blur-md rounded-xl p-6 w-80 flex flex-col gap-4 shadow-[hsl(var(--primary))] shadow-sm border border border-white/20"
+      >
+        <h3 className="text-xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+          Confirm Account Deletion
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Type <span className="font-mono text-red-400">DELETE</span> to confirm.
+        </p>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Type DELETE here"
+          autoFocus
+          className="w-full px-3 py-2 rounded-md bg-input text-foreground border border-border focus:outline-none focus:ring-2 focus:ring-red-500"
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setModalOpen(false)}
+            className="px-3 py-2 rounded-md bg-gray-700 hover:bg-gray-500 text-white transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={loading || inputValue !== "DELETE"}
+            className="px-3 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] theme-transition">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+
         {/* Left: Logo & Mobile Menu */}
         <div className="flex items-center gap-4 sm:gap-6">
-          {/* Mobile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -78,35 +140,37 @@ export function Header({ onMenuToggle }: HeaderProps) {
                 </DropdownMenuItem>
               ))}
 
-              {!user ? (
+              {!isSignedIn ? (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/login"
-                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Log In
+                    <Link href="/login" className="flex items-center gap-2 cursor-pointer">
+                      <LogIn className="h-4 w-4" /> Log In
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/signup"
-                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Sign Up
+                    <Link href="/signup" className="flex items-center gap-2 cursor-pointer">
+                      <UserPlus className="h-4 w-4" /> Sign Up
                     </Link>
                   </DropdownMenuItem>
                 </>
               ) : (
-                <DropdownMenuItem
-                  onClick={() => signOut(auth)}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-white/5 hover:text-white transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem onClick={() => signOut()} className="ml-2 cursor-pointer">
+                    <LogOut className="h-4 w-4 mr-2" /> Logout
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    asChild
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      setModalOpen(true)
+                    }}
+                  >
+                    <button className="w-full bg-red-600/80 text-white font-medium py-2 px-4 rounded-xl shadow-md hover:opacity-90 transition flex items-center justify-center">
+                      Delete My Account
+                    </button>
+                  </DropdownMenuItem>
+                </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -138,32 +202,23 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <span className="hidden sm:inline">{item.label}</span>
             </Link>
           ))}
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {user ? (
+              {isSignedIn ? (
                 <button className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/5 hover:backdrop-blur-md">
-                  {/* Avatar with initials fallback */}
-                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
-                    {user.photoURL ? (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-medium overflow-hidden">
+                    {user && (
                       <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email || "User")}&background=random&color=fff&size=128`}
-                        alt={user.displayName || "User"}
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || user.firstName || "User")}&background=random&color=fff&size=32`}
+                        alt={user.fullName || "User"}
                         className="w-8 h-8 rounded-full"
                       />
-                    ) : (
-                      (user.displayName?.[0] || user.email?.[0] || "?").toUpperCase()
                     )}
                   </div>
-                  <span className="hidden sm:inline text-sm">
-                    Account
-                  </span>
+                  <span className="hidden sm:inline text-sm">Account</span>
                 </button>
               ) : (
-                <Button
-                  variant="ghost"
-                  className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md"
-                >
+                <Button variant="ghost" className="px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md">
                   Account
                 </Button>
               )}
@@ -173,49 +228,49 @@ export function Header({ onMenuToggle }: HeaderProps) {
               align="end"
               className="w-56 rounded-xl border border-white/10 bg-background/80 backdrop-blur-md"
             >
-              {!user ? (
+              {!isSignedIn ? (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/login"
-                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Log In
+                    <Link href="/login" className="flex items-center gap-2 cursor-pointer">
+                      <LogIn className="h-4 w-4" /> Log In
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href="/signup"
-                      className="flex items-center gap-2 px-3 py-2 text-sm rounded-md hover:bg-white/5 hover:text-white transition-colors"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Sign Up
+                    <Link href="/signup" className="flex items-center gap-2 cursor-pointer">
+                      <UserPlus className="h-4 w-4" /> Sign Up
                     </Link>
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  {/* User Info Header */}
                   <div className="px-3 py-2 border-b border-white/10">
-                    <p className="text-sm font-medium">{user.displayName || "User"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    <p className="text-sm font-medium">{user?.fullName || 'User'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user?.primaryEmailAddress?.emailAddress}</p>
                   </div>
+                  <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+                    <LogOut className="h-4 w-4 mr-2" /> Logout
+                  </DropdownMenuItem>
 
-                  {/* Logout Button */}
                   <DropdownMenuItem
-                    onClick={() => signOut(auth)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer hover:bg-white/5 hover:text-white transition-colors"
+                    asChild
+                    onSelect={(event) => {
+                      event.preventDefault()
+                      setModalOpen(true)
+                    }}
                   >
-                    <LogOut className="h-4 w-4" />
-                    Logout
+                    <button className="w-full bg-red-600/80 text-white font-medium py-2 px-4 rounded-xl shadow-md hover:opacity-90 transition flex items-center justify-center">
+                      Delete My Account
+                    </button>
                   </DropdownMenuItem>
                 </>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
         </nav>
       </div>
+
+      {modal}
     </header>
   )
 }
