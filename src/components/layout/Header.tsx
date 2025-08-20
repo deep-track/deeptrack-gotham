@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
+
 
 export function Header() {
   const { user, isSignedIn } = useUser()
@@ -25,6 +27,8 @@ export function Header() {
   const [inputValue, setInputValue] = useState("")
   const [loading, setLoading] = useState(false)
   const pathname = usePathname()
+  const { toast } = useToast();
+
 
   const primaryNav = [
     { href: '/', label: 'Dashboard', icon: <Shield className="h-4 w-4" /> },
@@ -39,30 +43,46 @@ export function Header() {
         : 'text-muted-foreground hover:text-white hover:bg-white/5 hover:backdrop-blur-md'
     )
 
-  const handleDelete = async () => {
-    if (inputValue !== "DELETE") return;
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/delete-account", { method: "POST" });
-      const data = await res.json();
+const handleDelete = async () => {
+  if (inputValue !== "DELETE") return;
 
-      if (!res.ok) {
-        console.error("Server error:", data);
-        throw new Error("Failed to delete account");
-      }
+  setLoading(true);
+  try {
+    const res = await fetch("/api/delete-account", { method: "POST" });
+    const data = await res.json();
 
+    if (!res.ok) {
+      console.error("Server error:", data);
+      throw new Error("Failed to delete account");
+    }
+
+    toast({
+      title: "Account deleted",
+      description: "Your account was successfully deleted.",
+      variant: "default",
+      duration: 2000,
+    });
+
+    setTimeout(async () => {
       await signOut();
       router.push("/");
-    } catch (err) {
-      console.error(err);
-      alert("Could not delete account. Try again later.");
-    } finally {
-      setLoading(false);
-      setModalOpen(false);
-      setInputValue("");
-    }
-  };
+    }, 1200); 
+  } catch (err) {
+    console.error(err);
+
+    toast({
+      title: "Deletion failed",
+      description: "Could not delete account. Try again later.",
+      variant: "destructive",
+      duration: 2000,
+    });
+  } finally {
+    setLoading(false);
+    setModalOpen(false);
+    setInputValue("");
+  }
+};
 
   const modal = modalOpen && createPortal(
     <div
@@ -110,7 +130,6 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.1)] theme-transition">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
-
         {/* Left: Logo & Mobile Menu */}
         <div className="flex items-center gap-4 sm:gap-6">
           <DropdownMenu>

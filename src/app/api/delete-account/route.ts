@@ -1,16 +1,15 @@
-// src/app/api/delete-account/route.ts
-import { getAuth, clerkClient as getClerkClient } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId } = getAuth(req); // pass the Request directly
+    const { userId } = getAuth(req); 
     if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const clerkClient = await getClerkClient();
-    await clerkClient.users.deleteUser(userId);
+    const client = await clerkClient(); 
+    await client.users.deleteUser(userId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

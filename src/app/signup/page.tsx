@@ -21,13 +21,22 @@ export default function Signup() {
 
   if (!signUpLoaded || !signInLoaded) return null;
 
-  // Handle email/password sign-up
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
     setLoading(true);
 
     try {
+      const validationResponse = await fetch('/api/validate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const validationData = await validationResponse.json();
+      if (!validationData.valid) {
+        throw new Error(validationData.message || 'Please use a business email address');
+      }
 
       await signUp.create({
         emailAddress: email,
@@ -44,13 +53,12 @@ export default function Signup() {
       setPendingVerification(true);
     } catch (e: any) {
       console.error(e);
-      setErr(e?.errors?.[0]?.message || "Something went wrong");
+      setErr(e?.errors?.[0]?.message || e.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   }
 
-  // Handle email verification
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -63,7 +71,7 @@ export default function Signup() {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        router.push("/"); 
+        router.push("/");
         return;
       }
 
@@ -76,7 +84,6 @@ export default function Signup() {
     }
   }
 
-  // Handle Google OAuth
   async function withGoogle() {
     setErr(null);
     try {
@@ -130,8 +137,11 @@ export default function Signup() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   className="w-full px-4 py-2 bg-input text-foreground border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="you@example.com"
+                  placeholder="you@yourcompany.com"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Please use your company email address
+                </p>
               </div>
 
               <div>

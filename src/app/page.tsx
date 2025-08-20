@@ -16,6 +16,7 @@ import { motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 import { useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -73,6 +74,7 @@ useEffect(() => {
       className="px-4 sm:px-8 py-10 max-w-5xl mx-auto space-y-10"
     >
       {/* Page Header */}
+       <Toaster />
       <header className="text-center sm:text-left space-y-3">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
           AI Image & Audio Verification
@@ -131,5 +133,7 @@ useEffect(() => {
         </Button>
       </div>
     </motion.div>
+
+
   )
 }

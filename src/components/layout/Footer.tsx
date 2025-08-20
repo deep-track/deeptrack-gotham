@@ -1,4 +1,4 @@
-// import React from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Linkedin, Twitter } from 'lucide-react';
 
@@ -9,45 +9,62 @@ export default function Footer() {
     <footer className="bg-black text-white py-16">
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         {/* Navigation Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-16">
           {/* Solutions Column */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-6">Solutions</h3>
             <nav className="flex flex-col space-y-4">
-              <Link href="/image-authentication" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 Image Authentication
               </Link>
-              <Link href="/audio-authentication" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 Audio Authentication
               </Link>
-              <Link href="/text-detection" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 Realtime Fact Checking
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 Disinformation
               </Link>
               
             </nav>
           </div>
 
+          {/* Resources Column */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold mb-6">Resources</h3>
+            <nav className="flex flex-col space-y-4">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
+                Blogs
+              </Link>
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
+                Developers
+              </Link>
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
+                Support
+              </Link>
+            </nav>
+          </div>
+
+       
 
           {/*Compliance Framework column */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-6">Privacy & Compliance</h3>
             <nav className="flex flex-col space-y-4">
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 SOC2 Compliance
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
                 GDPR
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
               Kenya Data Protection
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
               Compute on Device
               </Link>
-              <Link href="#" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="https://www.deeptrack.io/" className="text-gray-400 hover:text-white transition-colors">
               Privacy Secure
               </Link>
             </nav>
