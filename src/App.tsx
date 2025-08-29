@@ -15,7 +15,6 @@ import Login from "./app/login/page";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -24,7 +23,7 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <div className="min-h-screen bg-background text-foreground theme-transition">
-              <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+              <Header />
 
               <div className="flex min-h-0 flex-1 relative">
 
