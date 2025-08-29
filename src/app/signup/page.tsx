@@ -89,19 +89,25 @@ export default function Signup() {
     }
   }
 
-  async function withGoogle() {
-    setErr(null);
-    try {
-      await signUp.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/",
-      });
-    } catch (e: any) {
-      console.error(e);
-      setErr(e?.errors?.[0]?.message || "Google sign-up failed");
-    }
+async function withGoogle() {
+  setErr(null);
+
+  if (!signUp) {
+    console.error("signUp object is undefined");
+    return;
   }
+
+  try {
+    await signUp.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/",
+    });
+  } catch (e: any) {
+    console.error(e);
+    setErr(e?.errors?.[0]?.message || "Google sign-up failed");
+  }
+}
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center bg-background text-foreground px-4">
