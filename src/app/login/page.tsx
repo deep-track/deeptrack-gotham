@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useSignIn, useSignUp } from "@clerk/nextjs";
+import { useSignIn} from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export default function Login() {

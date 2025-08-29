@@ -9,7 +9,7 @@ import { useSignUp, useSignIn } from "@clerk/nextjs";
 export default function Signup() {
   const router = useRouter();
   const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
-  const { isLoaded: signInLoaded, signIn } = useSignIn();
+  const { isLoaded: signInLoaded } = useSignIn();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

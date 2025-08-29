@@ -95,11 +95,9 @@ export default function History() {
         <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
           <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
             <div className="text-lg sm:text-4xl font-bold bg-gradient-to-r from-[hsl(var(--primary))]/70 to-[#7F5AF0] text-transparent bg-clip-text">
-              {Math.round(
-                historyItems.reduce((acc, item) => acc + item.confidence, 0) /
-                historyItems.length
-              )}
-              %
+              {historyItems.length > 0
+                ? Math.round(historyItems.reduce((acc, item) => acc + item.confidence, 0) / historyItems.length)
+                : 0}%
             </div>
             <p className="text-md text-white/60 mt-1">Avg. Confidence</p>
           </CardContent>
