@@ -38,6 +38,11 @@ export default function Signup() {
         throw new Error(validationData.message || 'Please use a business email address');
       }
 
+      if (!signUp) {
+        console.error("signUp object is undefined");
+        return;
+      }
+
       await signUp.create({
         emailAddress: email,
         password,
