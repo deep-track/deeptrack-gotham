@@ -17,6 +17,9 @@ import { Loader2 } from "lucide-react"
 import { useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
+import type { Result } from "@/lib/store"
+import type { ResultData } from "@/lib/store"
+
 
 export default function Dashboard() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -25,39 +28,44 @@ export default function Dashboard() {
   const { isLoaded, isSignedIn, user } = useUser();
 
 
-  const handleProceed = async () => {
-    if (selectedFiles.length === 0) return
+const handleProceed = async () => {
+  if (selectedFiles.length === 0) return;
 
-    setIsProcessing(true)
+  setIsProcessing(true);
 
-    try {
-      const results = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const formData = new FormData()
-          formData.append('media', file)
+  try {
+    const results = await Promise.all(
+      selectedFiles.map(async (file: File) => {
+        const formData = new FormData();
+        formData.append("media", file);
 
-          const response = await fetch('/api/check-media', {
-            method: 'POST',
-            body: formData,
-          })
+        const response = await fetch("/api/check-media", {
+          method: "POST",
+          body: formData,
+        });
 
-          if (!response.ok) {
-            throw new Error(`Failed to process ${file.name}`)
-          }
+        if (!response.ok) {
+          throw new Error(`Failed to process ${file.name}`);
+        }
 
-          return await response.json()
-        })
-      )
+        // ✅ API already returns ResultData
+        const resultData: ResultData = await response.json();
+        return resultData;
+      })
+    );
 
-      useDashboardStore.setState({ resultData: results })
-      router.push("/results")
-    } catch (error) {
-      console.error('Error processing files:', error)
-      // You might want to show an error toast here
-    } finally {
-      setIsProcessing(false)
-    }
+    // ✅ Append new results instead of replacing
+    const { setResultData } = useDashboardStore.getState();
+    setResultData(results);
+
+    router.push("/results");
+  } catch (error) {
+    console.error("Error processing files:", error);
+  } finally {
+    setIsProcessing(false);
   }
+};
+
 
 useEffect(() => {
   if (isLoaded && !isSignedIn) {

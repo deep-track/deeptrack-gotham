@@ -7,6 +7,9 @@ import { FileText, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-rea
 import { AnalysisCard } from '@/components/verification/analysis-card';
 import { useDashboardStore } from "@/lib/store";
 import { useEffect, useState } from 'react';
+import type { ResultData } from '@/lib/store';
+
+
 
 interface RealityDefenderModel {
   name: string;
@@ -14,24 +17,6 @@ interface RealityDefenderModel {
   score: number;
 }
 
-interface RealityDefenderResult {
-  requestId: string;
-  status: 'AUTHENTIC' | 'MANIPULATED' | 'UNKNOWN';
-  score: number;
-  models: RealityDefenderModel[];
-}
-
-interface ResultProps {
-  imageBase64: string;
-  fileMeta: { name: string; type: string; size?: number };
-  result: {
-    status: string;
-    score: number;
-    models: RealityDefenderModel[];
-    raw: RealityDefenderResult;
-  };
-  timestamp: string;
-}
 
 export default function Results() {
   const router = useRouter();
@@ -139,7 +124,7 @@ export default function Results() {
         </h1>
 
         <div className="grid grid-cols-1 gap-8">
-          {resultData.map((result: ResultProps, idx: number) => {
+          {resultData.map((result: ResultData, idx: number) => {
             const { imageBase64, fileMeta, result: analysis, timestamp } = result;
 
             return (
@@ -206,16 +191,18 @@ export default function Results() {
                             {analysis.status}
                           </dd>
                         </div>
-                        <div>
-                          <dt className="font-medium text-muted-foreground">Confidence Score</dt>
-                          <dd className="mt-1 font-semibold">
-                            {(analysis.score * 100).toFixed(1)}%
-                          </dd>
-                        </div>
+<div>
+  <dt className="font-medium text-muted-foreground">Confidence Score</dt>
+  <dd className="mt-1 font-semibold">
+    {typeof analysis.score === "number"
+      ? `${(analysis.score * 100).toFixed(1)}%`
+      : "N/A"}
+  </dd>
+</div>
                         <div>
                           <dt className="font-medium text-muted-foreground">Request ID</dt>
                           <dd className="mt-1 text-xs font-mono">
-                            {analysis.raw?.requestId || 'N/A'}
+                            {(analysis.raw as { requestId?: string })?.requestId || 'N/A'}
                           </dd>
                         </div>
                       </div>

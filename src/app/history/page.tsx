@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { useDashboardStore } from '@/lib/store'
 
 
 
@@ -18,61 +19,23 @@ export default function History() {
   const [activeFilter, setActiveFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("date")
+  const { resultData } = useDashboardStore()
 
-  const mockHistory = [
-    {
-      id: 1,
-      fileName: "portrait_conference.jpg",
-      date: "2024-01-15",
-      time: "14:30",
-      verdict: "Authentic",
-      confidence: 87,
-      size: "2.4 MB",
-      thumbnail: "https://images.unsplash.com/photo-1556157382-97eda2d62296?w=100&h=100&fit=crop"
-    },
-    {
-      id: 2,
-      fileName: "social_media_post.png",
-      date: "2024-01-15",
-      time: "12:15",
-      verdict: "Synthetic",
-      confidence: 94,
-      size: "1.8 MB",
-      thumbnail: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
-    },
-    {
-      id: 3,
-      fileName: "news_article_image.jpg",
-      date: "2024-01-14",
-      time: "09:45",
-      verdict: "Authentic",
-      confidence: 92,
-      size: "3.2 MB",
-      thumbnail: "https://images.unsplash.com/photo-1494790108755-2616b35f2b50?w=100&h=100&fit=crop"
-    },
-    {
-      id: 4,
-      fileName: "profile_picture.jpg",
-      date: "2024-01-14",
-      time: "16:20",
-      verdict: "Synthetic",
-      confidence: 78,
-      size: "1.1 MB",
-      thumbnail: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
-    },
-    {
-      id: 5,
-      fileName: "event_photo.jpg",
-      date: "2024-01-13",
-      time: "11:30",
-      verdict: "Authentic",
-      confidence: 95,
-      size: "4.1 MB",
-      thumbnail: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop"
+  const historyItems = (resultData ?? []).map((r, i) => {
+    const date = new Date(r.timestamp)
+    return {
+      id: i,
+      fileName: r.fileMeta.name,
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      verdict: r.result.status === "AUTHENTIC" ? "Authentic" : "Synthetic",
+      confidence: Math.round(r.result.score ?? 0),
+      size: `${(r.fileMeta.size / 1024).toFixed(1)} KB`,
+      thumbnail: r.imageBase64,
     }
-  ]
+  })
 
-  const filteredHistory = mockHistory
+  const filteredHistory = historyItems
     .filter(item => {
       if (activeFilter === "authentic") return item.verdict === "Authentic"
       if (activeFilter === "synthetic") return item.verdict === "Synthetic"
@@ -102,7 +65,7 @@ export default function History() {
         <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
           <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
             <div className="text-lg sm:text-4xl font-bold text-white">
-              {mockHistory.length}
+              {historyItems.length}
             </div>
             <p className="text-md text-white/60 mt-1">Total Verifications</p>
           </CardContent>
@@ -112,7 +75,7 @@ export default function History() {
         <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
           <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
             <div className="text-lg sm:text-4xl font-bold text-emerald-500/80 ">
-              {mockHistory.filter(item => item.verdict === "Authentic").length}
+              {historyItems.filter(item => item.verdict === "Authentic").length}
             </div>
             <p className="text-md text-white/60 mt-1">Authentic Images</p>
           </CardContent>
@@ -122,7 +85,7 @@ export default function History() {
         <Card className="bg-muted/95 backdrop-blur-md border border-white/20 rounded-lg shadow-[0_0_30px_rgba(255,255,255,0.05)] transition hover:shadow-[0_0_40px_rgba(255,255,255,0.1)]">
           <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
             <div className="text-lg sm:text-4xl font-bold text-red-500/80 ">
-              {mockHistory.filter(item => item.verdict === "Synthetic").length}
+              {historyItems.filter(item => item.verdict === "Synthetic").length}
             </div>
             <p className="text-md text-white/60 mt-1">Synthetic Images</p>
           </CardContent>
@@ -133,8 +96,8 @@ export default function History() {
           <CardContent className="pt-2 flex flex-row items-center justify-between gap-2 text-left sm:pt-6 ">
             <div className="text-lg sm:text-4xl font-bold bg-gradient-to-r from-[hsl(var(--primary))]/70 to-[#7F5AF0] text-transparent bg-clip-text">
               {Math.round(
-                mockHistory.reduce((acc, item) => acc + item.confidence, 0) /
-                mockHistory.length
+                historyItems.reduce((acc, item) => acc + item.confidence, 0) /
+                historyItems.length
               )}
               %
             </div>
@@ -166,9 +129,9 @@ export default function History() {
               {/* Filter Pills */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: "all", label: "All Files", count: mockHistory.length },
-                  { key: "authentic", label: "Authentic", count: mockHistory.filter(h => h.verdict === "Authentic").length },
-                  { key: "synthetic", label: "Synthetic", count: mockHistory.filter(h => h.verdict === "Synthetic").length }
+                  { key: "all", label: "All Files", count: historyItems.length },
+                  { key: "authentic", label: "Authentic", count: historyItems.filter(h => h.verdict === "Authentic").length },
+                  { key: "synthetic", label: "Synthetic", count: historyItems.filter(h => h.verdict === "Synthetic").length }
                 ].map(filter => (
                   <Button
                     key={filter.key}

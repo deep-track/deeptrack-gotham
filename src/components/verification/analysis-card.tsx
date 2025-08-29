@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 interface AnalysisCardProps {
   name: string
   description: string
-  status: "authentic" | "fake" | "not-applicable" | "analyzing"
+  status: "authentic" | "manipulated" | "not-applicable" | "analyzing"
   confidence?: number
 }
 
@@ -14,7 +14,7 @@ export function AnalysisCard({ name, description, status, confidence }: Analysis
     switch (status) {
       case "authentic":
         return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success" />
-      case "fake":
+      case "manipulated":
         return <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-destructive" />
       case "not-applicable":
         return <HelpCircle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
@@ -27,8 +27,8 @@ export function AnalysisCard({ name, description, status, confidence }: Analysis
     switch (status) {
       case "authentic":
         return "Authentic"
-      case "fake":
-        return `${confidence}% Fake`
+      case "manipulated":
+        return `${confidence}% fake`
       case "not-applicable":
         return "Not Applicable"
       case "analyzing":
@@ -40,7 +40,7 @@ export function AnalysisCard({ name, description, status, confidence }: Analysis
     switch (status) {
       case "authentic":
         return "text-success"
-      case "fake":
+      case "manipulated":
         return "text-destructive"
       case "not-applicable":
         return "text-muted-foreground"
@@ -53,7 +53,7 @@ export function AnalysisCard({ name, description, status, confidence }: Analysis
     switch (status) {
       case "authentic":
         return "border-l-success"
-      case "fake":
+      case "manipulated":
         return "border-l-destructive"
       case "not-applicable":
         return "border-l-muted-foreground"
@@ -79,7 +79,7 @@ export function AnalysisCard({ name, description, status, confidence }: Analysis
                   <span className="hidden sm:inline">{getStatusText()}</span>
                   <span className="sm:hidden">
                     {status === "authentic" ? "Authentic" : 
-                     status === "fake" ? "Synthetic" : 
+                     status === "manipulated" ? "Synthetic" : 
                      status === "analyzing" ? "..." : "Not applicable"}
                   </span>
                 </span>
