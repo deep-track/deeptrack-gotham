@@ -13,7 +13,7 @@ import type { ResultData } from '@/lib/store';
 
 interface RealityDefenderModel {
   name: string;
-  status: 'AUTHENTIC' | 'MANIPULATED';
+  status: "AUTHENTIC" | "MANIPULATED" | "UNKNOWN";
   score: number;
 }
 
@@ -73,23 +73,28 @@ export default function Results() {
     }
   };
 
-  const convertToAnalysisCard = (model: RealityDefenderModel) => {
-    const modelDescriptions: { [key: string]: string } = {
-      'rd-context-img': 'Context-aware image analysis for detecting manipulations',
-      'rd-pine-img': 'Pine model for detecting AI-generated and manipulated images',
-      'rd-oak-img': 'Oak model specialized in deepfake detection',
-      'rd-elm-img': 'Elm model for general image manipulation detection',
-      'rd-img-ensemble': 'Ensemble model combining multiple detection algorithms',
-      'rd-cedar-img': 'Cedar model for detecting synthetic content',
-    };
-
-    return {
-      name: model.name.replace('rd-', '').replace('-img', '').toUpperCase() + ' Model',
-      description: modelDescriptions[model.name] || 'Advanced AI model for content verification',
-      status: model.status.toLowerCase() as 'authentic' | 'fake',
-      confidence: Math.round(model.score * 100),
-    };
+const convertToAnalysisCard = (model: RealityDefenderModel) => {
+  const modelDescriptions: { [key: string]: string } = {
+    'rd-context-img': 'Context-aware image analysis for detecting manipulations',
+    'rd-pine-img': 'Pine model for detecting AI-generated and manipulated images',
+    'rd-oak-img': 'Oak model specialized in deepfake detection',
+    'rd-elm-img': 'Elm model for general image manipulation detection',
+    'rd-img-ensemble': 'Ensemble model combining multiple detection algorithms',
+    'rd-cedar-img': 'Cedar model for detecting synthetic content',
   };
+
+  let status: 'authentic' | 'fake' | 'not-applicable';
+  if (model.status === 'AUTHENTIC') status = 'authentic';
+  else if (model.status === 'MANIPULATED') status = 'fake';
+  else status = 'not-applicable'; 
+
+  return {
+    name: model.name.replace('rd-', '').replace('-img', '').toUpperCase() + ' Model',
+    description: modelDescriptions[model.name] || 'Advanced AI model for content verification',
+    status,
+    confidence: Math.round(model.score * 100),
+  };
+};
 
   return (
     <div className="min-h-screen bg-background text-foreground">
