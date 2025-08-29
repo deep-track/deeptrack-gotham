@@ -83,9 +83,9 @@ const convertToAnalysisCard = (model: RealityDefenderModel) => {
     'rd-cedar-img': 'Cedar model for detecting synthetic content',
   };
 
-  let status: 'authentic' | 'fake' | 'not-applicable';
+  let status: 'authentic' | 'manipulated' | 'not-applicable';
   if (model.status === 'AUTHENTIC') status = 'authentic';
-  else if (model.status === 'MANIPULATED') status = 'fake';
+  else if (model.status === 'MANIPULATED') status = 'manipulated';
   else status = 'not-applicable'; 
 
   return {
