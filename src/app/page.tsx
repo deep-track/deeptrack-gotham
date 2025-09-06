@@ -1,78 +1,197 @@
-'use client'
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-} from "@/components/ui/card"
-import { UploadArea } from "@/components/upload/upload-area"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { useDashboardStore } from "@/lib/store"
-import { motion } from "framer-motion"
-import { Loader2 } from "lucide-react"
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { UploadArea } from "@/components/upload/upload-area";
+import { useRouter, useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useDashboardStore } from "@/lib/store";
+import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import type { Result } from "@/lib/store"
-import type { ResultData } from "@/lib/store"
-
 
 export default function Dashboard() {
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
-  const [isProcessing, setIsProcessing] = useState(false)
-  const router = useRouter()
-  const { isLoaded, isSignedIn, user } = useUser();
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
+  const search = useSearchParams();
+  const orderIdParam = search?.get("orderId");
+  const refParam = search?.get("ref");
+  const { isLoaded, isSignedIn } = useUser();
 
+  // If the user was redirected back from the payment provider, poll the
+  // verification endpoint and resume to results when the payment is confirmed.
+  useEffect(() => {
+    // Only run when we have either an orderId or a reference.
+    if (!orderIdParam && !refParam) return;
 
-const handleProceed = async () => {
-  if (selectedFiles.length === 0) return;
+    let cancelled = false;
+    const maxAttempts = 20;
+    const intervalMs = 3000;
+    let attempts = 0;
 
-  setIsProcessing(true);
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        let status: string | null = null;
 
-  try {
-    const results = await Promise.all(
-      selectedFiles.map(async (file: File) => {
+        // Prefer verifying by transaction reference (authoritative)
+        if (refParam) {
+          try {
+            const resp = await fetch(
+              `/api/payments/status/${encodeURIComponent(refParam)}`,
+            );
+            if (resp.ok) {
+              const json = await resp.json();
+              status = (json.status as string) ?? null;
+            }
+          } catch (err) {
+            console.warn(
+              "verify-by-ref failed, will fallback to order check",
+              err,
+            );
+          }
+        }
+
+        // Fallback: check order status
+        if (!status && orderIdParam) {
+          try {
+            const resp = await fetch(
+              `/api/orders?orderId=${encodeURIComponent(orderIdParam)}`,
+            );
+            if (resp.ok) {
+              const json = await resp.json();
+              status = json?.status ?? null;
+            }
+          } catch (err) {
+            console.warn("order check failed", err);
+          }
+        }
+
+        // If payment confirmed, navigate to results (include identifiers)
+        if (status === "paid") {
+          const params = new URLSearchParams();
+          if (orderIdParam) params.set("orderId", orderIdParam);
+          if (refParam) params.set("ref", refParam);
+          // Send user to results so processing / result UI can resume
+          router.push(`/results?${params.toString()}`);
+          return;
+        }
+      } catch (err) {
+        console.error("payment polling error:", err);
+      }
+
+      attempts++;
+      if (attempts < maxAttempts && !cancelled) {
+        setTimeout(poll, intervalMs);
+      } else {
+        // Give up after max attempts; UI can display retry option on payment-pending page.
+      }
+    };
+
+    poll();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderIdParam, refParam, router]);
+
+  // Intentionally do NOT redirect to login on mount.
+  // Users can upload and preview first. Sign-in is required at checkout.
+
+  /**
+   * handleProceed
+   * - Uploads files to /api/uploads (multipart).
+   * - Creates an Order on the server with returned upload IDs.
+   * - Redirects to /checkout?orderId=<id>
+   *
+   * Backend expectations:
+   *  - POST /api/uploads (form-data 'media') -> { uploadId, filename, size, mime }
+   *  - POST /api/orders { uploads: string[] } -> { orderId, totalAmount }
+   *
+   * For large files, swap this for a presigned S3 flow.
+   */
+  const handleProceed = async () => {
+    if (selectedFiles.length === 0) return;
+
+    // Persist selected files metadata locally so the checkout can show previews.
+    useDashboardStore.getState().setFiles(selectedFiles);
+
+    setIsProcessing(true);
+
+    try {
+      // Upload each file to server (simple multipart endpoint).
+      const uploadPromises = selectedFiles.map(async (file: File) => {
         const formData = new FormData();
         formData.append("media", file);
 
-        const response = await fetch("/api/check-media", {
+        const resp = await fetch("/api/uploads", {
           method: "POST",
           body: formData,
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to process ${file.name}`);
+        if (!resp.ok) {
+          const text = await resp.text().catch(() => "");
+          throw new Error(
+            `Upload failed for ${file.name}: ${resp.status} ${text}`,
+          );
         }
 
-        // ✅ API already returns ResultData
-        const resultData: ResultData = await response.json();
-        return resultData;
-      })
-    );
+        // Expected shape from server: { uploadId, filename, size, mime }
+        return resp.json();
+      });
 
-    // ✅ Append new results instead of replacing
-    const { setResultData } = useDashboardStore.getState();
-    setResultData(results);
+      const settled = await Promise.allSettled(uploadPromises);
 
-    router.push("/results");
-  } catch (error) {
-    console.error("Error processing files:", error);
-  } finally {
-    setIsProcessing(false);
-  }
-};
+      const succeeded = settled
+        .filter((r) => r.status === "fulfilled")
+        // @ts-ignore - narrowing of PromiseAllSettled is verbose; this is fine here
+        .map((r) => r.value);
 
+      const failed = settled.filter((r) => r.status === "rejected");
 
-useEffect(() => {
-  if (isLoaded && !isSignedIn) {
-    router.replace("/login");
-  }
-}, [isLoaded, isSignedIn, router]);
+      if (failed.length > 0) {
+        console.warn("Some uploads failed:", failed);
+        // Replace with your toast system if available
+        alert(
+          `${failed.length} file(s) failed to upload. Check console for details.`,
+        );
+      }
 
+      if (succeeded.length === 0) {
+        // If nothing uploaded, stop here.
+        setIsProcessing(false);
+        return;
+      }
+
+      // Create an Order referencing these uploaded items.
+      const orderResp = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploads: succeeded.map((u: any) => u.uploadId || u.id),
+        }),
+      });
+
+      if (!orderResp.ok) {
+        const text = await orderResp.text().catch(() => "");
+        throw new Error(`Failed to create order: ${orderResp.status} ${text}`);
+      }
+
+      const { orderId } = await orderResp.json();
+
+      // Redirect to checkout page to complete sign-in/payment.
+      router.push(`/checkout?orderId=${encodeURIComponent(orderId)}`);
+    } catch (err) {
+      console.error("Error during proceed:", err);
+      // TODO: wire up toast instead of alert
+      alert(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <motion.div
@@ -81,14 +200,14 @@ useEffect(() => {
       transition={{ duration: 0.5 }}
       className="px-4 sm:px-8 py-10 max-w-5xl mx-auto space-y-10"
     >
-      {/* Page Header */}
-       <Toaster />
+      <Toaster />
       <header className="text-center sm:text-left space-y-3">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
           AI Image & Audio Verification
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
-          Upload images (JPG, PNG) and audio files (MP3, WAV) to verify their authenticity using advanced AI detection algorithms.
+          Upload images (JPG, PNG) and audio files (MP3, WAV) to verify their
+          authenticity using advanced AI detection algorithms.
         </p>
         <hr className="border-t border-[hsl(var(--border))] opacity-20 mt-4" />
       </header>
@@ -109,7 +228,8 @@ useEffect(() => {
                 onClearFiles={() => setSelectedFiles([])}
               />
               <p className="text-xs text-muted-foreground">
-                Max file size 300MB. Accepted formats: JPG, PNG, MP3, WAV, MP4, WebM.
+                Max file size 300MB. Accepted formats: JPG, PNG, MP3, WAV, MP4,
+                WebM.
               </p>
             </CardContent>
           </Card>
@@ -127,7 +247,7 @@ useEffect(() => {
             "text-[hsl(var(--primary-foreground))]",
             "text-base font-medium py-5 rounded-[var(--radius)]",
             "shadow-[0_0_30px_hsl(var(--primary)/0.3)] transition-all",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
+            "disabled:opacity-50 disabled:cursor-not-allowed",
           )}
         >
           {isProcessing ? (
@@ -136,12 +256,10 @@ useEffect(() => {
               Processing...
             </>
           ) : (
-            "Analyze Media with Deeptrack"
+            "Proceed to Checkout"
           )}
         </Button>
       </div>
     </motion.div>
-
-
-  )
+  );
 }
