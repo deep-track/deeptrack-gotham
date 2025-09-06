@@ -9,11 +9,11 @@ export async function POST(req: Request) {
   try {
     if (!PAYSTACK_SECRET) {
       console.warn(
-        "PAYSTACK_SECRET_KEY is not set. create-paystack will fail in runtime.",
+        "PAYSTACK_SECRET_KEY is not set. create-paystack will fail in runtime."
       );
       return NextResponse.json(
         { error: "Server not configured: PAYSTACK_SECRET_KEY missing" },
-        { status: 500 },
+        { status: 500 }
       );
     }
 
@@ -21,11 +21,13 @@ export async function POST(req: Request) {
     if (!body || !body.orderId || !body.email) {
       return NextResponse.json(
         { error: "orderId and email are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const { orderId, email } = body;
+    console.log(mockDb.listUploads());
+    console.log(mockDb.listOrders());
     const order = mockDb.getOrder(orderId);
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -40,7 +42,9 @@ export async function POST(req: Request) {
 
     // Build callback URL (include orderId and reference)
     const origin = req.headers.get("origin") || PUBLIC_ORIGIN;
-    const callbackUrl = `${origin}/payment-pending?orderId=${encodeURIComponent(orderId)}&ref=${encodeURIComponent(txRef)}`;
+    const callbackUrl = `${origin}/payment-pending?orderId=${encodeURIComponent(
+      orderId
+    )}&ref=${encodeURIComponent(txRef)}`;
 
     // Initialize Paystack transaction
     const initResp = await fetch(
@@ -60,7 +64,7 @@ export async function POST(req: Request) {
             orderId,
           },
         }),
-      },
+      }
     );
 
     const initJson = await initResp.json().catch(() => null);
@@ -69,7 +73,7 @@ export async function POST(req: Request) {
       console.error("Paystack initialize failed:", initResp.status, initJson);
       return NextResponse.json(
         { error: "Payment initialization failed" },
-        { status: 502 },
+        { status: 502 }
       );
     }
 
@@ -81,7 +85,7 @@ export async function POST(req: Request) {
     console.error("/api/create-paystack error:", err);
     return NextResponse.json(
       { error: err?.message ?? String(err) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

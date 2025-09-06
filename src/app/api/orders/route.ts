@@ -7,7 +7,7 @@ export async function POST(req: Request) {
     if (!body || !Array.isArray(body.uploads)) {
       return NextResponse.json(
         { error: "Invalid body, expected { uploads: string[] }" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
     console.error("/api/orders POST error:", err);
     return NextResponse.json(
       { error: err?.message ?? String(err) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -31,22 +31,24 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const orderId = url.searchParams.get("orderId");
-    if (!orderId) {
-      return NextResponse.json(
-        { error: "orderId query param required" },
-        { status: 400 },
-      );
+
+    if (orderId) {
+      // Get a single order
+      const order = mockDb.getOrder(orderId);
+      if (!order) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+      return NextResponse.json(order);
+    } else {
+      // Get all orders
+      const orders = mockDb.listOrders();
+      return NextResponse.json(orders);
     }
-    const order = mockDb.getOrder(orderId);
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-    return NextResponse.json(order);
   } catch (err: any) {
     console.error("/api/orders GET error:", err);
     return NextResponse.json(
       { error: err?.message ?? String(err) },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }

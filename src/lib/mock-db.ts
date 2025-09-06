@@ -6,7 +6,7 @@
  *
  * NOTE: This is an ephemeral in-memory store. Data will be lost when the process exits.
  */
-
+import Database from "better-sqlite3";
 export type UploadStatus = "uploaded" | "deleted" | "expired";
 export type OrderStatus =
   | "created"
@@ -66,22 +66,48 @@ function uid(prefix = "id"): string {
  *
  * Returns price in cents.
  */
+// 100 cents = $1.00 per file
 function computePriceCentsForUploads(uploads: UploadRecord[]): number {
-  const minPerFile = 100; // 100 cents = $1.00 per file minimum
-  const centsPerMB = 50; // 50 cents per MB
-  let total = 0;
-  for (const u of uploads) {
-    const sizeMb = Math.max(0.001, u.size / (1024 * 1024));
-    const price = Math.max(minPerFile, Math.ceil(sizeMb * centsPerMB));
-    total += price;
-  }
-  return total;
+  const pricePerFile = 100;
+  return uploads.length * pricePerFile;
 }
 
 class MockDB {
   private uploads = new Map<string, UploadRecord>();
   private orders = new Map<string, OrderRecord>();
+  private db: Database.Database;
 
+  constructor(filename = "app.db") {
+    this.db = new Database(filename);
+
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS uploads (
+        id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        mime TEXT NOT NULL,
+        s3Key TEXT,
+        status TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        metadata TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS orders (
+        id TEXT PRIMARY KEY,
+        uploadIds TEXT NOT NULL,
+        userId TEXT,
+        totalAmountCents INTEGER NOT NULL,
+        currency TEXT NOT NULL,
+        status TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        paymentRef TEXT,
+        notes TEXT,
+        result TEXT
+      );
+    `);
+  }
+  c;
   // Uploads
   createUpload(params: {
     filename: string;
@@ -102,27 +128,55 @@ class MockDB {
       metadata: params.metadata ?? {},
     };
     this.uploads.set(id, rec);
+
+    this.db
+      .prepare(
+        `INSERT INTO uploads (id, filename, size, mime, s3Key, status, createdAt, metadata)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        rec.id,
+        rec.filename,
+        rec.size,
+        rec.mime,
+        rec.s3Key,
+        rec.status,
+        rec.createdAt,
+        JSON.stringify(rec.metadata)
+      );
+
     return rec;
   }
 
   getUpload(id: string): UploadRecord | undefined {
-    return this.uploads.get(id);
+    const row = this.db.prepare(`SELECT * FROM uploads WHERE id = ?`).get(id);
+    if (!row) return undefined;
+    return {
+      ...row,
+      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+    };
   }
 
   listUploads(): UploadRecord[] {
-    return Array.from(this.uploads.values());
+    return this.db
+      .prepare(`SELECT * FROM uploads`)
+      .all()
+      .map((row: any) => ({
+        ...row,
+        metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      }));
   }
 
   setUploadStatus(id: string, status: UploadStatus): UploadRecord | undefined {
-    const u = this.uploads.get(id);
-    if (!u) return undefined;
-    u.status = status;
-    this.uploads.set(id, u);
-    return u;
+    this.db
+      .prepare(`UPDATE uploads SET status = ? WHERE id = ?`)
+      .run(status, id);
+    return this.getUpload(id);
   }
 
   deleteUpload(id: string): boolean {
-    return this.uploads.delete(id);
+    const res = this.db.prepare(`DELETE FROM uploads WHERE id = ?`).run(id);
+    return res.changes > 0;
   }
 
   // Orders
@@ -138,7 +192,7 @@ class MockDB {
       .filter(Boolean) as UploadRecord[];
 
     const totalAmountCents = computePriceCentsForUploads(uploads);
-
+    console.log(totalAmountCents);
     const rec: OrderRecord = {
       id,
       uploadIds: params.uploadIds,
@@ -153,34 +207,79 @@ class MockDB {
     };
 
     this.orders.set(id, rec);
+    this.db
+      .prepare(
+        `INSERT INTO orders (id, uploadIds, userId, totalAmountCents, currency, status, createdAt, updatedAt, paymentRef, notes, result)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        rec.id,
+        JSON.stringify(rec.uploadIds),
+        rec.userId,
+        rec.totalAmountCents,
+        rec.currency,
+        rec.status,
+        rec.createdAt,
+        rec.updatedAt,
+        rec.paymentRef,
+        rec.notes,
+        null
+      );
     return rec;
   }
 
   getOrder(id: string): OrderRecord | undefined {
-    return this.orders.get(id);
+    const row = this.db.prepare(`SELECT * FROM orders WHERE id = ?`).get(id);
+    if (!row) return undefined;
+    return {
+      ...row,
+      uploadIds: JSON.parse(row.uploadIds),
+      result: row.result ? JSON.parse(row.result) : null,
+    };
   }
 
   listOrders(): OrderRecord[] {
-    return Array.from(this.orders.values());
+    return this.db
+      .prepare(`SELECT * FROM orders`)
+      .all()
+      .map((row: any) => ({
+        ...row,
+        uploadIds: JSON.parse(row.uploadIds),
+        result: row.result ? JSON.parse(row.result) : null,
+      }));
   }
 
   updateOrderStatus(id: string, status: OrderStatus): OrderRecord | undefined {
-    const o = this.orders.get(id);
-    if (!o) return undefined;
-    o.status = status;
-    o.updatedAt = nowIso();
-    this.orders.set(id, o);
-    return o;
+    this.db
+      .prepare(`UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?`)
+      .run(status, nowIso(), id);
+    return this.getOrder(id);
   }
 
   setOrderPaymentRef(id: string, paymentRef: string): OrderRecord | undefined {
-    const o = this.orders.get(id);
-    if (!o) return undefined;
-    o.paymentRef = paymentRef;
-    o.updatedAt = nowIso();
-    this.orders.set(id, o);
-    return o;
+    this.db
+      .prepare(`UPDATE orders SET paymentRef = ?, updatedAt = ? WHERE id = ?`)
+      .run(paymentRef, nowIso(), id);
+    return this.getOrder(id);
   }
+
+  updateOrderResult(id: string, result: Record<string, unknown>): void {
+    this.db
+      .prepare(`UPDATE orders SET result = ?, updatedAt = ? WHERE id = ?`)
+      .run(JSON.stringify(result), nowIso(), id);
+  }
+
+  clearAll(): void {
+    this.db.exec(`DELETE FROM uploads; DELETE FROM orders;`);
+  }
+  // setOrderPaymentRef(id: string, paymentRef: string): OrderRecord | undefined {
+  //   const o = this.orders.get(id);
+  //   if (!o) return undefined;
+  //   o.paymentRef = paymentRef;
+  //   o.updatedAt = nowIso();
+  //   this.orders.set(id, o);
+  //   return o;
+  // }
 
   // Simple cleanup for uploads older than TTL that are not associated with paid orders
   cleanupExpiredUploads(ttlMs = 1000 * 60 * 60 * 24): number {
@@ -191,7 +290,7 @@ class MockDB {
       if (created < cutoff && u.status === "uploaded") {
         // Check if upload is referenced by any non-cancelled order
         const referenced = Array.from(this.orders.values()).some((o) =>
-          o.uploadIds.includes(id),
+          o.uploadIds.includes(id)
         );
         if (!referenced) {
           this.uploads.delete(id);
@@ -304,11 +403,11 @@ class MockDB {
     return o;
   }
 
-  // Reset / testing helpers
-  clearAll(): void {
-    this.uploads.clear();
-    this.orders.clear();
-  }
+  // // Reset / testing helpers
+  // clearAll(): void {
+  //   this.uploads.clear();
+  //   this.orders.clear();
+  // }
 
   seedSampleData(): void {
     this.clearAll();
