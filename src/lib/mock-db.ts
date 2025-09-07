@@ -69,7 +69,7 @@ function uid(prefix = "id"): string {
 // 100 cents = $1.00 per file
 function computePriceCentsForUploads(uploads: UploadRecord[]): number {
   const pricePerFile = 100;
-  return uploads.length * pricePerFile;
+  return uploads.length * pricePerFile || 100;
 }
 
 class MockDB {

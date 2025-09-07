@@ -6,22 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/toaster";
 import { useUser } from "@clerk/nextjs";
-import { cn } from "@/lib/utils";
-import { useDashboardStore } from "@/lib/store";
-
-/**
- * Checkout page
- *
- * - Expects query param `orderId`
- * - Loads order via GET /api/orders?orderId=...
- * - Collects email (prefilled from Clerk if available)
- * - Calls POST /api/create-paystack { orderId, email } to initialize payment
- * - Redirects browser to returned authorization_url
- *
- * Notes:
- * - This is intentionally lightweight: errors are surfaced inline.
- * - Replace alert() with a toast system if you prefer (Toaster is available).
- */
 
 export default function CheckoutPage() {
   const search = useSearchParams();
@@ -34,12 +18,10 @@ export default function CheckoutPage() {
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string>("");
-  const files = useDashboardStore((s) => s.files);
 
   useEffect(() => {
     // Prefill email from Clerk if available
     if (isLoaded && isSignedIn && user) {
-      // Clerk's user shape can vary; try common fields
       const primary = (user as any).primaryEmailAddress?.emailAddress;
       const alt =
         (user as any).emailAddresses &&
@@ -82,15 +64,14 @@ export default function CheckoutPage() {
     };
   }, [orderId]);
 
-  const handlePay = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handlePay = async () => {
     setError(null);
     if (!orderId) {
       setError("Missing orderId.");
       return;
     }
     if (!email) {
-      setError("Please provide an email address.");
+      setError("Missing user email. Please sign in again.");
       return;
     }
 
@@ -109,7 +90,6 @@ export default function CheckoutPage() {
 
       const json = await resp.json();
       const url = json.authorization_url || json.authorizationUrl || json.url;
-      const reference = json.reference || json.ref;
 
       if (!url) {
         throw new Error(
@@ -117,8 +97,6 @@ export default function CheckoutPage() {
         );
       }
 
-      // Optionally persist reference locally or in store if needed
-      // Redirect to Paystack hosted payment page
       window.location.href = url;
     } catch (err: any) {
       console.error("create-paystack error:", err);
@@ -173,8 +151,7 @@ export default function CheckoutPage() {
                     <p>
                       Total:{" "}
                       <strong>
-                        {(order.totalAmountCents / 100).toFixed(2)}{" "}
-                        {order.currency}
+                        {(order.totalAmountCents / 100).toFixed(2)} {order.currency}
                       </strong>
                     </p>
                   </div>
@@ -201,35 +178,30 @@ export default function CheckoutPage() {
               <CardTitle>Contact & Payment</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePay} className="space-y-4">
-                <label className="block">
-                  <span className="text-sm">Email address</span>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={cn(
-                      "mt-1 block w-full rounded border px-3 py-2",
-                      "focus:ring-2 focus:ring-primary/40",
-                    )}
-                  />
-                </label>
+              <div className="space-y-4">
+                <div>
+                  <span className="text-sm block">Email address</span>
+                  <p className="mt-1 text-sm">
+                    {isLoaded && isSignedIn ? email || "Unavailable" : "Loading…"}
+                  </p>
+                </div>
 
                 <div className="flex items-center gap-3">
-                  <Button type="submit" disabled={loading || fetching}>
+                  <Button onClick={handlePay} disabled={loading || fetching || !isSignedIn}>
                     {loading
                       ? "Redirecting…"
                       : `Pay ${(order?.totalAmountCents ?? 0) / 100} ${order?.currency ?? ""}`}
                   </Button>
-                  <Button variant="outline" onClick={() => router.push("/")}>
-                    Cancel
-                  </Button>
+                  <Button variant="outline" onClick={() => router.push("/")}>Cancel</Button>
                 </div>
 
-                {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
-              </form>
+                {!isSignedIn && (
+                  <p className="text-sm text-red-500">
+                    You must be signed in to continue.
+                  </p>
+                )}
+                {error && <p className="text-sm text-red-500">{error}</p>}
+              </div>
             </CardContent>
           </Card>
         </div>
