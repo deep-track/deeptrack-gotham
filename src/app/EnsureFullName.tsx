@@ -17,18 +17,26 @@ export default function EnsureFullName() {
   }, [user, isLoaded]);
 
   const handleSave = async () => {
-    const parts = fullName.trim().split(/\s+/);
-    const firstName = parts[0] || "";
-    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : "";
-
     try {
-      await user?.update({ firstName, lastName });
+      if (!fullName.trim()) {
+        alert("Please enter your name");
+        return;
+      }
+
+      // option 1: save as username
+      // await user?.update({ username: fullName });
+      console.log("allow saving full name by fixing clerk setings:", fullName);
+
+      // option 2: or save in metadata
+      // await user?.update({ publicMetadata: { fullName } });
+
       setShowModal(false);
     } catch (err) {
       console.error(err);
       alert("Failed to save name. Please try again.");
     }
   };
+
 
   if (!showModal) return null;
 

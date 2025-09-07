@@ -76,7 +76,9 @@ export default function Dashboard() {
           if (orderIdParam) params.set("orderId", orderIdParam);
           if (refParam) params.set("ref", refParam);
           // Send user to results so processing / result UI can resume
-          router.push(`/results?${params.toString()}`);
+          setTimeout(() => {
+            router.push(`/results?${params.toString()}`);
+          }, 2000)
           return;
         }
       } catch (err) {

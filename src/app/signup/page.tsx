@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -27,38 +27,44 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      const validationResponse = await fetch('/api/validate-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+      // validate email via backend
+      const validationResponse = await fetch("/api/validate-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
 
       const validationData = await validationResponse.json();
       if (!validationData.valid) {
-        throw new Error(validationData.message || 'Please use a business email address');
+        throw new Error(validationData.message || "Please use a business email address");
       }
 
       if (!signUp) {
-        console.error("signUp object is undefined");
+        setErr("SignUp object not ready. Please refresh and try again.");
         return;
       }
 
+      // Step 1: create user with email + password
       await signUp.create({
         emailAddress: email,
         password,
       });
 
-      const parts = name.trim().split(/\s+/);
-      await signUp.update({
-        firstName: parts[0] || "",
-        lastName: parts.slice(1).join(" ") || "",
-      });
+      // Step 2: set name (optional, after account creation)
+      // const parts = name.trim().split(/\s+/);
+      // await signUp.update({
+      //   firstName: parts[0] || "",
+      //   lastName: parts.slice(1).join(" ") || "",
+      // });
 
+      // Step 3: send verification code to email
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (e: any) {
       console.error(e);
-      setErr(e?.errors?.[0]?.message || e.message || "Something went wrong");
+      const message =
+        e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Something went wrong";
+      setErr(message);
     } finally {
       setLoading(false);
     }
@@ -76,46 +82,52 @@ export default function Signup() {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        router.push("/");
+        router.push("/login");
         return;
       }
 
       console.log("Sign-up not complete:", completeSignUp);
     } catch (e: any) {
       console.error(e);
-      setErr(e?.errors?.[0]?.message || "Invalid code");
+      const message = e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "Invalid code";
+      setErr(message);
     } finally {
       setLoading(false);
     }
   }
 
-async function withGoogle() {
-  setErr(null);
+  async function withGoogle() {
+    setErr(null);
+    if (!signUp) {
+      setErr("SignUp object not ready. Please refresh and try again.");
+      return;
+    }
 
-  if (!signUp) {
-    console.error("signUp object is undefined");
-    return;
+    try {
+      await signUp.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/",
+      });
+    } catch (e: any) {
+      console.error(e);
+      const message = e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "Google sign-up failed";
+      setErr(message);
+    }
   }
-
-  try {
-    await signUp.authenticateWithRedirect({
-      strategy: "oauth_google",
-      redirectUrl: "/sso-callback",
-      redirectUrlComplete: "/",
-    });
-  } catch (e: any) {
-    console.error(e);
-    setErr(e?.errors?.[0]?.message || "Google sign-up failed");
-  }
-}
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center bg-background text-foreground px-4">
       <div className="flex flex-col md:flex-row-reverse w-full max-w-5xl rounded-2xl overflow-hidden border border-border shadow-[0_0_40px_rgba(0,0,0,0.2)] backdrop-blur-md bg-card/70">
-
         {/* Left image */}
         <div className="w-full md:w-1/2 flex items-center justify-center p-6">
-          <Image src="/deeptrack-security.svg" alt="Signup Illustration" className="object-contain h-full w-full" width={400} height={400} />
+          <Image
+            src="/deeptrack-security.svg"
+            alt="Signup Illustration"
+            className="object-contain h-full w-full"
+            width={400}
+            height={400}
+          />
         </div>
 
         {/* Right form area */}
@@ -171,7 +183,7 @@ async function withGoogle() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-150 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
+                className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-100 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
               >
                 {loading ? "Creating account..." : "Sign Up"}
               </button>
@@ -192,7 +204,7 @@ async function withGoogle() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-150 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
+                className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-100 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
               >
                 {loading ? "Verifying..." : "Verify Email"}
               </button>
