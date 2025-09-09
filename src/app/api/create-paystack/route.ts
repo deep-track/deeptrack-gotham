@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         },
         body: JSON.stringify({
           email,
-          amount: order.totalAmountCents, // amount in smallest currency unit
+          amount: order.totalAmountCents * 100, // amount in smallest currency unit
           reference: txRef,
           callback_url: callbackUrl,
           metadata: {
