@@ -11,10 +11,10 @@ const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
  */
 export async function GET(
   req: Request,
-  { params }: { params: { reference?: string } },
+  { params }: { params: Promise<{ reference?: string }> },
 ) {
   try {
-    const reference = params?.reference;
+    const { reference } = await params;
     if (!reference) {
       return NextResponse.json(
         { error: "reference param required" },

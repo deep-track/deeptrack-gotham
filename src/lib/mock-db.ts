@@ -269,6 +269,13 @@ class MockDB {
       .run(JSON.stringify(result), nowIso(), id);
   }
 
+  updateOrderUser(id: string, userId: string): OrderRecord | undefined {
+    this.db
+      .prepare(`UPDATE orders SET userId = ?, updatedAt = ? WHERE id = ?`)
+      .run(userId, nowIso(), id);
+    return this.getOrder(id);
+  }
+
   clearAll(): void {
     this.db.exec(`DELETE FROM uploads; DELETE FROM orders;`);
   }

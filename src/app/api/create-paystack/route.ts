@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import mockDb from "@/lib/mock-db";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
@@ -7,6 +8,24 @@ const PUBLIC_ORIGIN =
 
 export async function POST(req: Request) {
   try {
+    // Server-side authentication check
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user details from Clerk
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+    const userEmail = user.emailAddresses[0]?.emailAddress;
+    
+    if (!userEmail) {
+      return NextResponse.json(
+        { error: "User email not found" },
+        { status: 400 }
+      );
+    }
+
     if (!PAYSTACK_SECRET) {
       console.warn(
         "PAYSTACK_SECRET_KEY is not set. create-paystack will fail in runtime."
@@ -18,19 +37,31 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => null);
-    if (!body || !body.orderId || !body.email) {
+    if (!body || !body.orderId) {
       return NextResponse.json(
-        { error: "orderId and email are required" },
+        { error: "orderId is required" },
         { status: 400 }
       );
     }
 
-    const { orderId, email } = body;
+    const { orderId } = body;
+    // Use verified email from Clerk instead of client-provided email
+    const email = userEmail;
     console.log(mockDb.listUploads());
     console.log(mockDb.listOrders());
     const order = mockDb.getOrder(orderId);
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Authorization check: ensure user owns this order
+    if (order.userId && order.userId !== userId) {
+      return NextResponse.json({ error: "Access denied" }, { status: 403 });
+    }
+
+    // If order doesn't have a userId yet, assign it to current user
+    if (!order.userId) {
+      mockDb.updateOrderUser(orderId, userId);
     }
 
     // Create a unique transaction reference

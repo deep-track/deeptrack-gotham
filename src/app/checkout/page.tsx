@@ -5,30 +5,30 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/toaster";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useSignIn, useSignUp } from "@clerk/nextjs";
+import { useDashboardStore } from "@/lib/store";
+import Image from "next/image";
 
 export default function CheckoutPage() {
   const search = useSearchParams();
   const router = useRouter();
   const orderId = search?.get("orderId") ?? "";
   const { isLoaded, isSignedIn, user } = useUser();
+  const { isLoaded: signInLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded: signUpLoaded, signUp } = useSignUp();
 
   const [order, setOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState<string>("");
-
-  useEffect(() => {
-    // Prefill email from Clerk if available
-    if (isLoaded && isSignedIn && user) {
-      const primary = (user as any).primaryEmailAddress?.emailAddress;
-      const alt =
-        (user as any).emailAddresses &&
-        (user as any).emailAddresses[0]?.emailAddress;
-      setEmail(primary || alt || (user as any).email || "");
-    }
-  }, [isLoaded, isSignedIn, user]);
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  
+  // Get uploaded files from store for display
+  const { files } = useDashboardStore();
 
   useEffect(() => {
     if (!orderId) {
@@ -64,14 +64,69 @@ export default function CheckoutPage() {
     };
   }, [orderId]);
 
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!signInLoaded || !signUpLoaded) return;
+    
+    setAuthLoading(true);
+    setError(null);
+
+    try {
+      if (authMode === 'signin') {
+        if (!signIn) return;
+        const result = await signIn.create({
+          identifier: email,
+          password,
+        });
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId });
+        }
+      } else {
+        if (!signUp) return;
+        await signUp.create({
+          emailAddress: email,
+          password,
+        });
+        
+        await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+        // For demo purposes, we'll auto-complete. In production, handle email verification
+        const completeSignUp = await signUp.attemptEmailAddressVerification({ code: "123456" });
+        if (completeSignUp.status === 'complete') {
+          await setActive({ session: completeSignUp.createdSessionId });
+        }
+      }
+    } catch (err: any) {
+      setError(err?.errors?.[0]?.longMessage || err?.message || 'Authentication failed');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    if (!signIn) return;
+    try {
+      // Store current URL with orderId for after OAuth redirect
+      sessionStorage.setItem('clerk_return_url', window.location.href);
+      
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: window.location.origin + "/sso-callback",
+        redirectUrlComplete: window.location.href,
+      });
+    } catch (err: any) {
+      setError(err?.message || 'Google sign-in failed');
+    }
+  };
+
   const handlePay = async () => {
     setError(null);
     if (!orderId) {
       setError("Missing orderId.");
       return;
     }
-    if (!email) {
-      setError("Missing user email. Please sign in again.");
+    if (!isSignedIn) {
+      setError("Please sign in to continue with payment.");
       return;
     }
 
@@ -80,7 +135,7 @@ export default function CheckoutPage() {
       const resp = await fetch("/api/create-paystack", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, email }),
+        body: JSON.stringify({ orderId }),
       });
 
       if (!resp.ok) {
@@ -107,105 +162,227 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
+    <div className="bg-white">
       <Toaster />
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold">Checkout</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Complete your payment to start processing. You will be returned to the
-          site when payment is complete.
-        </p>
-      </header>
+      {/* Background color split screen for large screens */}
+      <div aria-hidden="true" className="fixed top-0 left-0 hidden h-full w-1/2 bg-white lg:block" />
+      <div aria-hidden="true" className="fixed top-0 right-0 hidden h-full w-1/2 bg-black lg:block" />
 
-      {!orderId ? (
-        <Card className="p-6">
-          <p className="text-sm text-red-500">
-            No order specified. Go back and try again.
-          </p>
-          <div className="mt-4">
-            <Button onClick={() => router.push("/")} className="mr-2">
-              Return home
-            </Button>
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 lg:pt-16">
+        <h1 className="sr-only">Checkout</h1>
+
+        {/* Order Summary Section */}
+        <section
+          aria-labelledby="summary-heading"
+          className="bg-black py-12 text-white/80 md:px-10 lg:col-start-2 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-24"
+        >
+          <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
+            <h2 id="summary-heading" className="sr-only">Order summary</h2>
+
+            {fetching ? (
+              <div className="text-white">Loading order...</div>
+            ) : error ? (
+              <div className="text-red-400">{error}</div>
+            ) : order ? (
+              <>
+                <dl>
+                  <dt className="text-sm font-medium">Amount due</dt>
+                  <dd className="mt-1 text-3xl font-bold tracking-tight text-white">
+                    ${(order.totalAmountCents / 100).toFixed(2)}
+                  </dd>
+                </dl>
+
+                <ul role="list" className="divide-y divide-white/10 text-sm font-medium mt-6">
+                  {files.map((file, index) => (
+                    <li key={index} className="flex items-start space-x-4 py-6">
+                      <div className="size-20 flex-none rounded-md bg-gray-800 flex items-center justify-center border border-gray-700">
+                        <svg className="w-8 h-8 text-white/60" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-auto space-y-1">
+                        <h3 className="text-white">{file.name}</h3>
+                        <p>{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p>Image verification</p>
+                      </div>
+                      <p className="flex-none text-base font-medium text-white">$1.00</p>
+                    </li>
+                  ))}
+                </ul>
+
+                <dl className="space-y-6 border-t border-white/10 pt-6 text-sm font-medium">
+                  <div className="flex items-center justify-between">
+                    <dt>Subtotal</dt>
+                    <dd>${(order.totalAmountCents / 100).toFixed(2)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-white/10 pt-6 text-white">
+                    <dt className="text-base">Total</dt>
+                    <dd className="text-base">${(order.totalAmountCents / 100).toFixed(2)}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <div className="text-white">No order data</div>
+            )}
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {fetching ? (
-                <p>Loading order…</p>
-              ) : error ? (
-                <p className="text-red-500">{error}</p>
-              ) : order ? (
-                <div className="space-y-3">
-                  <div className="text-sm text-muted-foreground">
-                    <p>
-                      Order ID: <span className="font-mono">{order.id}</span>
-                    </p>
-                    <p>
-                      Status: <strong>{order.status}</strong>
-                    </p>
-                    <p>
-                      Total:{" "}
-                      <strong>
-                        {(order.totalAmountCents / 100).toFixed(2)} {order.currency}
-                      </strong>
-                    </p>
+        </section>
+
+        {/* Authentication/Payment Section */}
+        <section
+          aria-labelledby="payment-and-auth-heading"
+          className="py-16 lg:col-start-1 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:pt-0 lg:pb-24"
+        >
+          <h2 id="payment-and-auth-heading" className="sr-only">
+            Authentication and payment
+          </h2>
+
+          <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
+            {!isSignedIn ? (
+              /* Sign In/Sign Up Form */
+              <div>
+                <div className="flex space-x-4 mb-6">
+                  <button
+                    onClick={() => setAuthMode('signin')}
+                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md ${
+                      authMode === 'signin'
+                        ? 'bg-black text-white border border-gray-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setAuthMode('signup')}
+                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md ${
+                      authMode === 'signup'
+                        ? 'bg-black text-white border border-gray-600'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+
+                <form onSubmit={handleAuth} className="space-y-6">
+                  {authMode === 'signup' && (
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                        Full Name
+                      </label>
+                      <div className="mt-2">
+                        <input
+                          id="name"
+                          name="name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-black sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                      Email address
+                    </label>
+                    <div className="mt-2">
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-black sm:text-sm"
+                      />
+                    </div>
                   </div>
 
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Uploads</h4>
-                    <ul className="list-disc pl-5 text-sm text-muted-foreground">
-                      {(order.uploadIds || []).map((id: string) => (
-                        <li key={id} className="truncate">
-                          {id}
-                        </li>
-                      ))}
-                    </ul>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                      Password
+                    </label>
+                    <div className="mt-2">
+                      <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-black sm:text-sm"
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <p>No order data.</p>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact & Payment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <span className="text-sm block">Email address</span>
-                  <p className="mt-1 text-sm">
-                    {isLoaded && isSignedIn ? email || "Unavailable" : "Loading…"}
-                  </p>
-                </div>
+                  {error && (
+                    <div className="text-sm text-red-600">{error}</div>
+                  )}
 
-                <div className="flex items-center gap-3">
-                  <Button onClick={handlePay} disabled={loading || fetching || !isSignedIn}>
-                    {loading
-                      ? "Redirecting…"
-                      : `Pay ${(order?.totalAmountCents ?? 0) / 100} ${order?.currency ?? ""}`}
-                  </Button>
-                  <Button variant="outline" onClick={() => router.push("/")}>Cancel</Button>
-                </div>
+                  <button
+                    type="submit"
+                    disabled={authLoading}
+                    className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-2 focus:outline-black disabled:opacity-50"
+                  >
+                    {authLoading ? 'Loading...' : (authMode === 'signin' ? 'Sign In' : 'Sign Up')}
+                  </button>
+                </form>
 
-                {!isSignedIn && (
-                  <p className="text-sm text-red-500">
-                    You must be signed in to continue.
-                  </p>
-                )}
-                {error && <p className="text-sm text-red-500">{error}</p>}
+                <div className="mt-6">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGoogleAuth}
+                    className="mt-4 w-full flex justify-center items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                  >
+                    <Image src="/google-icon.svg" alt="Google" width={20} height={20} />
+                    Continue with Google
+                  </button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            ) : (
+              /* Payment Section - Only shown when authenticated */
+              <div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to pay</h3>
+                  <p className="text-sm text-gray-600">
+                    Signed in as {user?.emailAddresses?.[0]?.emailAddress}
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Button
+                    onClick={handlePay}
+                    disabled={loading || fetching}
+                    className="w-full bg-black hover:bg-gray-800 text-white py-3 text-base font-medium transition-all"
+                  >
+                    {loading
+                      ? "Processing..."
+                      : `Pay $${(order?.totalAmountCents ?? 0) / 100}`}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push("/")} 
+                    className="w-full"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
