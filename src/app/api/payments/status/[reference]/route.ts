@@ -84,6 +84,18 @@ export async function GET(
         if (found) {
           mockDb.setOrderPaymentRef(found.id, reference);
           mockDb.updateOrderStatus(found.id, "paid");
+          
+          // Trigger verification processing after payment
+          try {
+            await fetch(`${process.env.NEXT_PUBLIC_APP_ORIGIN || 'http://localhost:3000'}/api/process-order`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId: found.id })
+            });
+          } catch (error) {
+            console.error('Failed to trigger order processing:', error);
+          }
+          
           return NextResponse.json({ status: "paid", orderId: found.id });
         }
       }

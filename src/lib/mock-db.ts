@@ -107,7 +107,6 @@ class MockDB {
       );
     `);
   }
-  c;
   // Uploads
   createUpload(params: {
     filename: string;
@@ -267,6 +266,11 @@ class MockDB {
     this.db
       .prepare(`UPDATE orders SET result = ?, updatedAt = ? WHERE id = ?`)
       .run(JSON.stringify(result), nowIso(), id);
+  }
+
+  setOrderResult(id: string, result: Record<string, unknown>): OrderRecord | undefined {
+    this.updateOrderResult(id, result);
+    return this.getOrder(id);
   }
 
   updateOrderUser(id: string, userId: string): OrderRecord | undefined {

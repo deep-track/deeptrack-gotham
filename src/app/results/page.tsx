@@ -123,36 +123,11 @@ export default function Results() {
         
         console.log('Result data set in store');
       } else {
-        console.log('Order has no result data:', order);
-        
-        // Create mock result data for testing
-        const mockResultData = {
-          imageBase64: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
-          fileMeta: { name: 'test-image.jpg', type: 'image/jpeg', size: 1024 },
-          result: {
-            requestId: 'test-123',
-            status: 'AUTHENTIC' as const,
-            score: 0.95,
-            models: [
-              { name: 'rd-context-img', status: 'AUTHENTIC' as const, score: 0.92 },
-              { name: 'rd-pine-img', status: 'AUTHENTIC' as const, score: 0.98 }
-            ],
-            raw: { 
-              requestId: 'test-123',
-              status: 'AUTHENTIC' as const,
-              score: 0.95,
-              models: [
-                { name: 'rd-context-img', status: 'AUTHENTIC' as const, score: 0.92 },
-                { name: 'rd-pine-img', status: 'AUTHENTIC' as const, score: 0.98 }
-              ]
-            }
-          },
-          timestamp: new Date().toISOString()
-        };
-        
-        console.log('Using mock result data for testing');
-        useDashboardStore.getState().clearResults();
-        useDashboardStore.getState().setResultData(mockResultData);
+        console.log('Order has no result data yet, waiting for processing...');
+        // Order exists but no results yet - keep polling
+        setTimeout(() => {
+          loadOrderResults(orderId);
+        }, 2000);
       }
     } catch (error) {
       console.error('Failed to load order results:', error);
