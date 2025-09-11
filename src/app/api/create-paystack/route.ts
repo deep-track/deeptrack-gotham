@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import mockDb from "@/lib/mock-db";
+import tursoDB from "@/lib/turso-db";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PUBLIC_ORIGIN =
@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     const { orderId } = body;
     // Use verified email from Clerk instead of client-provided email
     const email = userEmail;
-    console.log(mockDb.listUploads());
-    console.log(mockDb.listOrders());
-    const order = mockDb.getOrder(orderId);
+    console.log(await tursoDB.listUploads());
+    console.log(await tursoDB.listOrders());
+    const order = await tursoDB.getOrder(orderId);
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -61,15 +61,15 @@ export async function POST(req: Request) {
 
     // If order doesn't have a userId yet, assign it to current user
     if (!order.userId) {
-      mockDb.updateOrderUser(orderId, userId);
+      await tursoDB.updateOrderUser(orderId, userId);
     }
 
     // Create a unique transaction reference
     const txRef = `DT-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
     // Persist reference and mark order payment_pending
-    mockDb.setOrderPaymentRef(orderId, txRef);
-    mockDb.updateOrderStatus(orderId, "payment_pending");
+    await tursoDB.setOrderPaymentRef(orderId, txRef);
+    await tursoDB.updateOrderStatus(orderId, "payment_pending");
 
     // Build callback URL (include orderId and reference)
     const origin = req.headers.get("origin") || PUBLIC_ORIGIN;

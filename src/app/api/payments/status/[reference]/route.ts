@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import mockDb from "@/lib/mock-db";
+import tursoDB from "@/lib/turso-db";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // 1) Try to find an existing order by stored paymentRef
-    const orders = mockDb.listOrders ? mockDb.listOrders() : [];
+    const orders = await tursoDB.listOrders();
     let order = orders.find((o: any) => o.paymentRef === reference);
 
     if (order && order.status === "paid") {
@@ -80,10 +80,10 @@ export async function GET(
 
     if (mapped === "paid") {
       if (metadataOrderId) {
-        const found = mockDb.getOrder(metadataOrderId);
+        const found = await tursoDB.getOrder(metadataOrderId);
         if (found) {
-          mockDb.setOrderPaymentRef(found.id, reference);
-          mockDb.updateOrderStatus(found.id, "paid");
+          await tursoDB.setOrderPaymentRef(found.id, reference);
+          await tursoDB.updateOrderStatus(found.id, "paid");
           
           // Trigger verification processing after payment
           try {
@@ -102,8 +102,8 @@ export async function GET(
 
       // If we didn't have metadataOrderId, try to find an order by existing reference (again)
       if (order) {
-        mockDb.setOrderPaymentRef(order.id, reference);
-        mockDb.updateOrderStatus(order.id, "paid");
+        await tursoDB.setOrderPaymentRef(order.id, reference);
+        await tursoDB.updateOrderStatus(order.id, "paid");
         return NextResponse.json({ status: "paid", orderId: order.id });
       }
 
@@ -118,7 +118,7 @@ export async function GET(
     // Optionally update local order status if we have one
     if (order && mapped !== order.status) {
       // keep local in sync for future polling
-      mockDb.updateOrderStatus(
+      await tursoDB.updateOrderStatus(
         order.id,
         mapped === "failed" ? "failed" : "payment_pending",
       );

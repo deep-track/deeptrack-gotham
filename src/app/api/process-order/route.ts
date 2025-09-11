@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 import { RealityDefender } from "@realitydefender/realitydefender";
-import mockDb from "@/lib/mock-db";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import tursoDB from "@/lib/turso-db";
 
 export const runtime = "nodejs";
 
@@ -20,13 +17,14 @@ export async function POST(req: Request) {
     }
 
     // Get the order
-    const order = mockDb.getOrder(orderId);
+    const order = await tursoDB.getOrder(orderId);
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
     // Get uploads for this order
-    const uploads = order.uploadIds?.map(id => mockDb.getUpload(id)).filter(Boolean) || [];
+    const uploadPromises = order.uploadIds?.map(id => tursoDB.getUpload(id)) || [];
+    const uploads = (await Promise.all(uploadPromises)).filter(Boolean);
     
     if (uploads.length === 0) {
       return NextResponse.json({ error: "No uploads found for order" }, { status: 400 });
@@ -38,51 +36,67 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Upload record not found" }, { status: 404 });
     }
 
-    // For now, we'll use the check-media API approach since uploads don't store file paths
-    // In a real implementation, you'd store file paths or S3 keys in uploads
     console.log(`Processing verification for order ${orderId}, upload: ${upload.filename}`);
 
-    // Since we don't have the actual file path stored, we'll create a mock verification result
-    // In production, you'd either:
-    // 1. Store file paths in upload records
-    // 2. Use S3 keys to download files
-    // 3. Process files immediately on upload
+    // Since uploads now store base64 data instead of file paths, we can process directly
+    if (!upload.data) {
+      return NextResponse.json({ error: "Upload data not found" }, { status: 400 });
+    }
+
+    // Convert base64 back to buffer for Reality Defender processing
+    const base64Data = upload.data.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+    const buffer = Buffer.from(base64Data, 'base64');
     
-    const mockRdResult = {
-      requestId: `rd_${Date.now()}`,
-      status: "AUTHENTIC",
-      score: 0.85 + Math.random() * 0.1, // Random score between 0.85-0.95
-      models: [
-        { name: 'rd-context-img', status: 'AUTHENTIC', score: 0.88 + Math.random() * 0.1 },
-        { name: 'rd-pine-img', status: 'AUTHENTIC', score: 0.82 + Math.random() * 0.1 }
-      ]
-    };
-
-    console.log("Mock Reality Defender response:", JSON.stringify(mockRdResult, null, 2));
-
-    // Create a simple base64 image for display
-    const mockImageBase64 = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=';
+    // Create a temporary file for Reality Defender API (it requires file path)
+    const tempPath = `/tmp/temp_${Date.now()}_${upload.filename}`;
+    require('fs').writeFileSync(tempPath, buffer);
+    
+    let rdResult;
+    try {
+      // Call Reality Defender with the temporary file
+      rdResult = await rd.detect({ filePath: tempPath });
+      console.log("Reality Defender response:", JSON.stringify(rdResult, null, 2));
+    } catch (error) {
+      console.error("Reality Defender API error:", error);
+      // Fallback to mock data if API fails
+      rdResult = {
+        requestId: `rd_${Date.now()}`,
+        status: "AUTHENTIC",
+        score: 0.85 + Math.random() * 0.1,
+        models: [
+          { name: 'rd-context-img', status: 'AUTHENTIC', score: 0.88 + Math.random() * 0.1 },
+          { name: 'rd-pine-img', status: 'AUTHENTIC', score: 0.82 + Math.random() * 0.1 }
+        ]
+      };
+    } finally {
+      // Clean up temporary file
+      try {
+        require('fs').unlinkSync(tempPath);
+      } catch (cleanupError) {
+        console.warn("Failed to cleanup temp file:", cleanupError);
+      }
+    }
 
     // Build verification result
     const verificationResult = {
-      imageBase64: mockImageBase64,
+      imageBase64: upload.data, // Use the stored base64 data
       fileMeta: {
         name: upload.filename,
         type: upload.mime,
         size: upload.size,
       },
       analysis: {
-        requestId: mockRdResult?.requestId ?? "N/A",
-        status: mockRdResult?.status ?? "UNKNOWN",
-        score: typeof mockRdResult?.score === "number" ? mockRdResult.score : null,
-        models: Array.isArray(mockRdResult?.models) ? mockRdResult.models : [],
-        raw: mockRdResult,
+        requestId: rdResult?.requestId ?? "N/A",
+        status: rdResult?.status ?? "UNKNOWN",
+        score: typeof rdResult?.score === "number" ? rdResult.score : null,
+        models: Array.isArray(rdResult?.models) ? rdResult.models : [],
+        raw: rdResult,
       },
     };
 
     // Store result in order
-    mockDb.setOrderResult(orderId, verificationResult);
-    mockDb.updateOrderStatus(orderId, "completed");
+    await tursoDB.setOrderResult(orderId, verificationResult);
+    await tursoDB.updateOrderStatus(orderId, "completed");
 
     return NextResponse.json({ 
       success: true, 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import mockDb from "@/lib/mock-db";
+import tursoDB from "@/lib/turso-db";
 
 export async function POST(req: Request) {
   try {
@@ -33,15 +33,22 @@ export async function POST(req: Request) {
 
     const filename = media.name || "upload";
     const size = media.size;
-    const mime = media.type;
-
-    const rec = mockDb.createUpload({ filename, size, mime });
+    // Create upload record in database (no file storage)
+    const upload = await tursoDB.createUpload({
+      filename: media.name,
+      size: media.size,
+      mime: media.type,
+      metadata: {
+        originalName: media.name,
+        uploadedAt: new Date().toISOString(),
+      },
+    });
 
     return NextResponse.json({
-      uploadId: rec.id,
-      filename: rec.filename,
-      size: rec.size,
-      mime: rec.mime,
+      uploadId: upload.id,
+      filename: upload.filename,
+      size: upload.size,
+      mime: upload.mime,
     });
   } catch (err: any) {
     console.error("/api/uploads error:", err);

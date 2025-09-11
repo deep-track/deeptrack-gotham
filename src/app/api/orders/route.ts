@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import mockDb from "@/lib/mock-db";
+import tursoDB from "@/lib/turso-db";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const order = mockDb.createOrder({ 
+    const order = await tursoDB.createOrder({ 
       uploadIds: body.uploads,
       userId: userId || null
     });
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 
     if (orderId) {
       // Get a single order
-      const order = mockDb.getOrder(orderId);
+      const order = await tursoDB.getOrder(orderId);
       if (!order) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
       }
@@ -68,8 +68,8 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
       
-      const allOrders = mockDb.listOrders();
-      const userOrders = allOrders.filter(order => order.userId === userId);
+      const allOrders = await tursoDB.listOrders();
+      const userOrders = allOrders.filter((order: any) => order.userId === userId);
       return NextResponse.json(userOrders);
     }
   } catch (err: any) {
