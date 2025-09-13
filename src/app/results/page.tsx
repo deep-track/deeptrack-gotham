@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { FileText, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
@@ -20,17 +20,137 @@ interface RealityDefenderModel {
 
 export default function Results() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const resultData = useDashboardStore((state) => state.resultData);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentStatus, setPaymentStatus] = useState<string>('checking');
+  
+  const orderId = searchParams.get('orderId');
+  const ref = searchParams.get('ref');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // If we have orderId or ref, we're coming from payment flow
+    if (orderId || ref) {
+      checkPaymentStatus();
+    } else {
+      // Regular flow - just show results from store
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [orderId, ref]);
+
+  const checkPaymentStatus = async () => {
+    try {
+      setIsLoading(true);
+      setPaymentStatus('checking');
+      
+      let endpoint = '';
+      let targetOrderId = orderId;
+      
+      if (ref) {
+        endpoint = `/api/payments/status/${encodeURIComponent(ref)}`;
+      } else if (orderId) {
+        endpoint = `/api/orders?orderId=${encodeURIComponent(orderId)}`;
+      }
+
+      if (!endpoint) {
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetch(endpoint);
+      const data = await response.json();
+      
+      // If we used payment status endpoint, get orderId from response
+      if (ref && data.orderId) {
+        targetOrderId = data.orderId;
+      }
+      
+      if (data.status === 'paid' && targetOrderId) {
+        setPaymentStatus('paid');
+        // Payment confirmed, load results from order
+        await loadOrderResults(targetOrderId);
+        setIsLoading(false);
+      } else if (data.status === 'paid') {
+        // Payment confirmed but no orderId - show success message
+        setPaymentStatus('paid');
+        setIsLoading(false);
+      } else {
+        // Still checking or failed
+        setPaymentStatus(data.status || 'pending');
+        
+        // If still pending, poll again after a delay
+        if (data.status === 'pending' || data.status === 'checking') {
+          setTimeout(() => {
+            checkPaymentStatus();
+          }, 3000);
+        } else {
+          setIsLoading(false);
+        }
+      }
+    } catch (error) {
+      console.error('Payment check failed:', error);
+      setPaymentStatus('error');
       setIsLoading(false);
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    }
+  };
+
+  const loadOrderResults = async (orderId: string) => {
+    try {
+      console.log('Loading order results for:', orderId);
+      const response = await fetch(`/api/orders?orderId=${encodeURIComponent(orderId)}`);
+      const order = await response.json();
+      
+      console.log('Order response:', order);
+      
+      if (order && order.result) {
+        console.log('Order has result, converting to ResultData format');
+        // Convert order result to ResultData format and add to store
+        const resultData = {
+          imageBase64: order.result.imageBase64 || '',
+          fileMeta: order.result.fileMeta || { name: 'Uploaded file', type: 'image/jpeg', size: 0 },
+          result: order.result.analysis || order.result,
+          timestamp: order.updatedAt || new Date().toISOString()
+        };
+        
+        console.log('Setting result data:', resultData);
+        
+        // Clear existing results and add the new one
+        useDashboardStore.getState().clearResults();
+        useDashboardStore.getState().setResultData(resultData);
+        
+        console.log('Result data set in store');
+      } else {
+        console.log('Order has no result data yet, waiting for processing...');
+        // Order exists but no results yet - keep polling
+        setTimeout(() => {
+          loadOrderResults(orderId);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Failed to load order results:', error);
+    }
+  };
 
   if (!Array.isArray(resultData) || resultData.length === 0) {
+    if (orderId || ref) {
+      // Coming from payment flow but no results yet
+      return (
+        <main className="flex items-center justify-center min-h-[50vh] px-4 text-center">
+          <div className="space-y-4">
+            <p className="text-muted-foreground text-base sm:text-lg">
+              {paymentStatus === 'checking' 
+                ? 'Verifying payment and preparing results...' 
+                : 'Payment verified. Processing your verification results...'}
+            </p>
+            <Button onClick={() => router.push('/')}>Go to Homepage</Button>
+          </div>
+        </main>
+      );
+    }
+    
     return (
       <main className="flex items-center justify-center min-h-[50vh] px-4 text-center">
         <div className="space-y-4">
@@ -107,9 +227,13 @@ const convertToAnalysisCard = (model: RealityDefenderModel) => {
               <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin"></div>
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-xl font-semibold">Verifying Media</h3>
+              <h3 className="text-xl font-semibold">
+                {orderId || ref ? 'Processing Payment' : 'Verifying Media'}
+              </h3>
               <p className="text-muted-foreground max-w-md">
-                Analyzing with advanced AI models...
+                {orderId || ref 
+                  ? 'Confirming your payment and preparing verification results...' 
+                  : 'Analyzing with advanced AI models...'}
               </p>
               <div className="w-full bg-muted rounded-full h-2.5 mt-4">
                 <div

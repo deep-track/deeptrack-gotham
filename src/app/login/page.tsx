@@ -2,12 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { useSignIn} from "@clerk/nextjs";
+import { useState, useEffect } from "react";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const { isLoaded: signInLoaded, signIn, setActive } = useSignIn();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -15,10 +16,25 @@ export default function Login() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!isLoaded) return; // wait until Clerk has loaded
+
+    if (isSignedIn) {
+      // redirect away if already logged in
+      router.replace("/");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+
   // Email & Password Login
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!signInLoaded) return;
+
+    if (!email.trim() || !password.trim()) {
+      setErr("Please enter both email and password.");
+      return;
+    }
+    if (!isLoaded || !signIn) return;
 
     setErr(null);
     setLoading(true);
@@ -32,9 +48,13 @@ export default function Login() {
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
         router.push("/");
+      } else {
+        setErr("Something went wrong. Please try again.");
       }
     } catch (e: any) {
-      setErr(e.errors?.[0]?.message || "Login failed");
+      const message =
+        e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Login failed";
+      setErr(message);
     } finally {
       setLoading(false);
     }
@@ -42,7 +62,7 @@ export default function Login() {
 
   // Google OAuth
   async function loginWithGoogle() {
-    if (!signInLoaded) return;
+    if (!isLoaded || !signIn) return;
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
@@ -50,14 +70,16 @@ export default function Login() {
         redirectUrlComplete: "/",
       });
     } catch (e: any) {
-      setErr(e.errors?.[0]?.message || "Google sign-in failed");
+      const message =
+        e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Google sign-in failed";
+      setErr(message);
     }
   }
 
   return (
     <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
       <div className="flex flex-col md:flex-row-reverse w-full max-w-5xl rounded-2xl overflow-hidden border border-border shadow-lg bg-card/70">
-        
+
         {/* Left image */}
         <div className="w-full md:w-1/2 flex items-center justify-center p-6">
           <Image src="/deeptrack-security.svg" alt="Login Illustration" width={400} height={400} />
@@ -65,7 +87,9 @@ export default function Login() {
 
         {/* Right form area */}
         <div className="w-full md:w-1/2 px-6 py-10 space-y-6">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">Welcome Back</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+            Welcome Back
+          </h2>
 
           {err && <p className="text-sm text-red-500">{err}</p>}
 
@@ -77,7 +101,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                  className="w-full px-4 py-2 bg-input text-foreground border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 bg-input text-foreground border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -88,14 +112,14 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                  className="w-full px-4 py-2 bg-input text-foreground border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-4 py-2 bg-input text-foreground border border-border rounded-md placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-                className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-150 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
+              className="w-full bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70 text-stone-100 font-medium py-2 rounded-md shadow-sm hover:opacity-90 transition"
             >
               {loading ? "Logging in..." : "Log In"}
             </button>

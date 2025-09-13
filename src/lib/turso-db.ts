@@ -1,0 +1,315 @@
+import { createClient } from "@libsql/client";
+
+export type UploadStatus = "uploaded" | "deleted" | "expired";
+export type OrderStatus =
+  | "created"
+  | "awaiting_payment"
+  | "payment_pending"
+  | "paid"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type UploadRecord = {
+  id: string;
+  filename: string;
+  size: number;
+  mime: string;
+  status: UploadStatus;
+  createdAt: string;
+  data?: string; // Base64 encoded file data
+  metadata?: Record<string, unknown>;
+};
+
+export type OrderRecord = {
+  id: string;
+  uploadIds: string[];
+  userId?: string | null;
+  totalAmountCents: number;
+  currency: string;
+  status: OrderStatus;
+  createdAt: string;
+  updatedAt: string;
+  paymentRef?: string | null;
+  notes?: string;
+  result?: Record<string, unknown> | null;
+};
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function uid(prefix = "id"): string {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random()
+    .toString(36)
+    .slice(2, 9)}`;
+}
+
+function computePriceCentsForUploads(uploadCount: number): number {
+  const pricePerFile = 100; // $1.00 per file
+  return uploadCount * pricePerFile || 100;
+}
+
+class TursoDB {
+  private client;
+
+  constructor() {
+    this.client = createClient({
+      url: process.env.TURSO_DATABASE_URL || "libsql://deeptrack-gotham-peter-okwara.aws-ap-south-1.turso.io",
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+    
+    this.initTables();
+  }
+
+  private async initTables() {
+    try {
+      await this.client.execute(`
+        CREATE TABLE IF NOT EXISTS uploads (
+          id TEXT PRIMARY KEY,
+          filename TEXT NOT NULL,
+          size INTEGER NOT NULL,
+          mime TEXT NOT NULL,
+          status TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          metadata TEXT
+        );
+      `);
+
+      await this.client.execute(`
+        CREATE TABLE IF NOT EXISTS orders (
+          id TEXT PRIMARY KEY,
+          uploadIds TEXT NOT NULL,
+          userId TEXT,
+          totalAmountCents INTEGER NOT NULL,
+          currency TEXT NOT NULL,
+          status TEXT NOT NULL,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL,
+          paymentRef TEXT,
+          notes TEXT,
+          result TEXT
+        );
+      `);
+    } catch (error) {
+      console.error("Failed to initialize tables:", error);
+    }
+  }
+
+  // Uploads
+  async createUpload(params: {
+    filename: string;
+    size: number;
+    mime: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<UploadRecord> {
+    const id = uid("upl");
+    const rec: UploadRecord = {
+      id,
+      filename: params.filename,
+      size: params.size,
+      mime: params.mime,
+      status: "uploaded",
+      createdAt: nowIso(),
+      metadata: params.metadata ?? {},
+    };
+
+    await this.client.execute(
+      `INSERT INTO uploads (id, filename, size, mime, status, createdAt, metadata)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        rec.id,
+        rec.filename,
+        rec.size,
+        rec.mime,
+        rec.status,
+        rec.createdAt,
+        JSON.stringify(rec.metadata),
+      ]
+    );
+
+    return rec;
+  }
+
+  async getUpload(id: string): Promise<UploadRecord | undefined> {
+    const result = await this.client.execute(
+      `SELECT * FROM uploads WHERE id = ?`,
+      [id]
+    );
+
+    const row = result.rows[0];
+    if (!row) return undefined;
+
+    return {
+      id: row.id as string,
+      filename: row.filename as string,
+      size: row.size as number,
+      mime: row.mime as string,
+      status: row.status as UploadStatus,
+      createdAt: row.createdAt as string,
+      metadata: row.metadata ? JSON.parse(row.metadata as string) : {},
+    };
+  }
+
+  async listUploads(): Promise<UploadRecord[]> {
+    const result = await this.client.execute(`SELECT * FROM uploads`);
+    
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      filename: row.filename,
+      size: row.size,
+      mime: row.mime,
+      status: row.status,
+      createdAt: row.createdAt,
+      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+    }));
+  }
+
+  async setUploadStatus(id: string, status: UploadStatus): Promise<UploadRecord | undefined> {
+    await this.client.execute(
+      `UPDATE uploads SET status = ? WHERE id = ?`,
+      [status, id]
+    );
+    return this.getUpload(id);
+  }
+
+  async deleteUpload(id: string): Promise<boolean> {
+    const result = await this.client.execute(
+      `DELETE FROM uploads WHERE id = ?`,
+      [id]
+    );
+    return result.rowsAffected > 0;
+  }
+
+  // Orders
+  async createOrder(params: {
+    uploadIds: string[];
+    userId?: string | null;
+    currency?: string;
+    notes?: string;
+  }): Promise<OrderRecord> {
+    const id = uid("ord");
+    const totalAmountCents = computePriceCentsForUploads(params.uploadIds.length);
+    
+    const rec: OrderRecord = {
+      id,
+      uploadIds: params.uploadIds,
+      userId: params.userId ?? null,
+      totalAmountCents,
+      currency: params.currency ?? "USD",
+      status: "awaiting_payment",
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+      paymentRef: null,
+      notes: params.notes ?? "",
+    };
+
+    await this.client.execute(
+      `INSERT INTO orders (id, uploadIds, userId, totalAmountCents, currency, status, createdAt, updatedAt, paymentRef, notes, result)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        rec.id,
+        JSON.stringify(rec.uploadIds),
+        rec.userId || null,
+        rec.totalAmountCents,
+        rec.currency,
+        rec.status,
+        rec.createdAt,
+        rec.updatedAt,
+        rec.paymentRef || null,
+        rec.notes || "",
+        null,
+      ]
+    );
+
+    return rec;
+  }
+
+  async getOrder(id: string): Promise<OrderRecord | undefined> {
+    const result = await this.client.execute(
+      `SELECT * FROM orders WHERE id = ?`,
+      [id]
+    );
+
+    const row = result.rows[0];
+    if (!row) return undefined;
+
+    return {
+      id: row.id as string,
+      uploadIds: JSON.parse(row.uploadIds as string),
+      userId: row.userId as string | null,
+      totalAmountCents: row.totalAmountCents as number,
+      currency: row.currency as string,
+      status: row.status as OrderStatus,
+      createdAt: row.createdAt as string,
+      updatedAt: row.updatedAt as string,
+      paymentRef: row.paymentRef as string | null,
+      notes: row.notes as string,
+      result: row.result ? JSON.parse(row.result as string) : null,
+    };
+  }
+
+  async listOrders(): Promise<OrderRecord[]> {
+    const result = await this.client.execute(`SELECT * FROM orders`);
+    
+    return result.rows.map((row: any) => ({
+      id: row.id,
+      uploadIds: JSON.parse(row.uploadIds),
+      userId: row.userId,
+      totalAmountCents: row.totalAmountCents,
+      currency: row.currency,
+      status: row.status,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      paymentRef: row.paymentRef,
+      notes: row.notes,
+      result: row.result ? JSON.parse(row.result) : null,
+    }));
+  }
+
+  async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderRecord | undefined> {
+    await this.client.execute(
+      `UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?`,
+      [status, nowIso(), id]
+    );
+    return this.getOrder(id);
+  }
+
+  async setOrderPaymentRef(id: string, paymentRef: string): Promise<OrderRecord | undefined> {
+    await this.client.execute(
+      `UPDATE orders SET paymentRef = ?, updatedAt = ? WHERE id = ?`,
+      [paymentRef, nowIso(), id]
+    );
+    return this.getOrder(id);
+  }
+
+  async updateOrderResult(id: string, result: Record<string, unknown>): Promise<void> {
+    await this.client.execute(
+      `UPDATE orders SET result = ?, updatedAt = ? WHERE id = ?`,
+      [JSON.stringify(result), nowIso(), id]
+    );
+  }
+
+  async setOrderResult(id: string, result: Record<string, unknown>): Promise<OrderRecord | undefined> {
+    await this.updateOrderResult(id, result);
+    return this.getOrder(id);
+  }
+
+  async updateOrderUser(id: string, userId: string): Promise<OrderRecord | undefined> {
+    await this.client.execute(
+      `UPDATE orders SET userId = ?, updatedAt = ? WHERE id = ?`,
+      [userId, nowIso(), id]
+    );
+    return this.getOrder(id);
+  }
+
+  async clearAll(): Promise<void> {
+    await this.client.execute(`DELETE FROM uploads`);
+    await this.client.execute(`DELETE FROM orders`);
+  }
+}
+
+// Export singleton instance
+export const tursoDB = new TursoDB();
+export default tursoDB;
