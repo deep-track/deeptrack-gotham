@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.31.1",
+    "@clerk/nextjs": "^6.32.0",
     "@hookform/resolvers": "^3.9.0",
     "@libsql/client": "^0.15.15",
     "@radix-ui/react-accordion": "^1.2.0",

@@ -199,7 +199,7 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
         </div>
 
         <div className="space-y-2 text-center">
-          <h3 className="sm:text-xl font-semibold text-white">Upload Images or Audio for Verification</h3>
+          <h3 className="sm:text-xl font-semibold text-white">Upload Media for Verification</h3>
           <p className="text-muted-foreground text-sm sm:text-base">
             Drag and drop your files here, or click to browse files
           </p>
@@ -227,7 +227,7 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
           <div className="flex flex-col sm:flex-row gap-2 w-full max-w-md mx-auto">
             <Input
               type="url"
-              placeholder="Paste image or audio URL here..."
+              placeholder="Paste media URL here..."
               value={mediaUrl}
               onChange={(e) => setMediaUrl(e.target.value)}
               onKeyDown={(e) => {

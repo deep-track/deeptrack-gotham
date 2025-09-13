@@ -205,10 +205,10 @@ export default function Dashboard() {
       <Toaster />
       <header className="text-center sm:text-left space-y-3">
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
-          AI Image & Audio Verification
+          AI Media Verification
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
-          Upload images (JPG, PNG) and audio files (MP3, WAV) to verify their
+          Upload all media files to verify their
           authenticity using advanced AI detection algorithms.
         </p>
         <hr className="border-t border-[hsl(var(--border))] opacity-20 mt-4" />

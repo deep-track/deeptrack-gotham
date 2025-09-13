@@ -95,7 +95,7 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm mb-1 text-foreground/80">Business Email</label>
+              <label className="block text-sm mb-1 text-foreground/80">Email</label>
               <input
                 type="email"
                 value={email}

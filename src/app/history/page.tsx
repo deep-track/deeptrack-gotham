@@ -221,33 +221,6 @@ export default function History() {
                         />
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1 text-xs"
-                      onClick={() => {
-                        const data = {
-                          imageBase64: item.thumbnail,
-                          fileMeta: {
-                            name: item.fileName,
-                            type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
-                            size: item.size,
-                          },
-                          result: {
-                            confidence: item.confidence,
-                            isAuthentic: item.verdict === "Authentic",
-                            processingTime: Math.floor(Math.random() * 2000) + 1000,
-                          },
-                          timestamp: `${item.date}T${item.time}:00.000Z`,
-                        };
-
-                        localStorage.setItem('verificationData', JSON.stringify(data));
-                        router.push('/results');
-                      }}
-                    >
-                      <Eye className="h-3 w-3" />
-                      View
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -268,7 +241,6 @@ export default function History() {
                   <th className="p-4 font-medium text-muted-foreground">Date & Time</th>
                   <th className="p-4 font-medium text-muted-foreground">Verdict</th>
                   <th className="p-4 font-medium text-muted-foreground">Confidence</th>
-                  <th className="p-4 font-medium text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -322,35 +294,6 @@ export default function History() {
                           />
                         </div>
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="gap-1"
-                        onClick={() => {
-                          const data = {
-                            imageBase64: item.thumbnail,
-                            fileMeta: {
-                              name: item.fileName,
-                              type: item.fileName.includes('.jpg') ? 'image/jpeg' : 'image/png',
-                              size: item.size,
-                            },
-                            result: {
-                              confidence: item.confidence,
-                              isAuthentic: item.verdict === "Authentic",
-                              processingTime: Math.floor(Math.random() * 2000) + 1000
-                            },
-                            timestamp: `${item.date}T${item.time}:00.000Z`
-                          }
-
-                          const query = encodeURIComponent(JSON.stringify(data))
-                          router.push(`/results?data=${query}`)
-                        }}
-                      >
-                        <Eye className="h-3 w-3" />
-                        View
-                      </Button>
                     </td>
                   </tr>
                 ))}
