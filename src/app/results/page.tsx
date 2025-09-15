@@ -92,9 +92,16 @@ function ResultsContent() {
         
         // If still pending, poll again after a delay
         if (data.status === 'pending' || data.status === 'checking') {
-          setTimeout(() => {
-            checkPaymentStatus();
-          }, 3000);
+          const intervalMs = 8000;
+          if (typeof document !== 'undefined' && document.hidden) {
+            setTimeout(() => {
+              checkPaymentStatus();
+            }, intervalMs);
+          } else {
+            setTimeout(() => {
+              checkPaymentStatus();
+            }, intervalMs);
+          }
         } else {
           setIsLoading(false);
         }

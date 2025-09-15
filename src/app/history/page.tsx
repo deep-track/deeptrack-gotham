@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Filter, FileText, Check, X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -24,33 +24,54 @@ export default function History() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [resumingOrderId, setResumingOrderId] = useState<string | null>(null)
+  const fetchAbortRef = useRef<AbortController | null>(null)
+
+  const refreshHistory = async () => {
+    // cancel any in-flight
+    if (fetchAbortRef.current) {
+      fetchAbortRef.current.abort()
+    }
+    const controller = new AbortController()
+    fetchAbortRef.current = controller
+
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/orders', { signal: controller.signal })
+      if (res.status === 401) {
+        setOrders([])
+        return
+      }
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '')
+        throw new Error(txt || `Failed to load orders (${res.status})`)
+      }
+      const json = await res.json()
+      setOrders(Array.isArray(json) ? json : [])
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return
+      setError(e?.message || 'Failed to load history')
+    } finally {
+      setLoading(false)
+      fetchAbortRef.current = null
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await fetch('/api/orders')
-        if (res.status === 401) {
-          // Not signed in; fall back to local history only
-          setOrders([])
-          return
-        }
-        if (!res.ok) {
-          const txt = await res.text().catch(() => '')
-          throw new Error(txt || `Failed to load orders (${res.status})`)
-        }
-        const json = await res.json()
-        if (!cancelled) setOrders(Array.isArray(json) ? json : [])
-      } catch (e: any) {
-        if (!cancelled) setError(e?.message || 'Failed to load history')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+      if (cancelled) return
+      await refreshHistory()
     }
     load()
-    return () => { cancelled = true }
+
+    // Auto-refresh every 60s when tab visible
+    const intervalMs = 60000
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return
+      refreshHistory()
+    }, intervalMs)
+    return () => { cancelled = true; clearInterval(id); if (fetchAbortRef.current) fetchAbortRef.current.abort() }
   }, [])
 
   const mapResultLike = (r: any, idx: number) => {
@@ -247,6 +268,12 @@ export default function History() {
                   <SelectItem value="name">Sort by Name</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={refreshHistory} disabled={loading}>
+                Refresh
+              </Button>
             </div>
           </div>
         </CardContent>

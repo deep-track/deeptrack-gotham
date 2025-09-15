@@ -22,8 +22,8 @@ function PaymentPendingContent() {
   const [error, setError] = useState<string | null>(null);
   const [attempts, setAttempts] = useState<number>(0);
 
-  const MAX_ATTEMPTS = 20;
-  const POLL_INTERVAL_MS = 3000;
+  const MAX_ATTEMPTS = 10;
+  const POLL_INTERVAL_MS = 8000;
 
   const cancelledRef = useRef(false);
   const timeoutRef = useRef<number | null>(null);
@@ -44,6 +44,10 @@ function PaymentPendingContent() {
     const poll = async () => {
       // stop if cancelled
       if (cancelledRef.current) return;
+      if (typeof document !== 'undefined' && document.hidden) {
+        timeoutRef.current = window.setTimeout(poll, POLL_INTERVAL_MS);
+        return;
+      }
 
       try {
         const result = await checkOnce();

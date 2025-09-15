@@ -36,12 +36,17 @@ function DashboardContent() {
     if (!orderIdParam && !refParam) return;
 
     let cancelled = false;
-    const maxAttempts = 20;
-    const intervalMs = 3000;
+    const maxAttempts = 10;
+    const intervalMs = 20000;
     let attempts = 0;
 
     const poll = async () => {
       if (cancelled) return;
+      if (typeof document !== 'undefined' && document.hidden) {
+        // If tab not visible, try again later without fetching
+        setTimeout(poll, intervalMs);
+        return;
+      }
       try {
         let status: string | null = null;
 
