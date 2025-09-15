@@ -113,7 +113,7 @@ function ResultsContent() {
     }
   };
 
-  const loadOrderResults = async (orderId: string) => {
+  const loadOrderResults = async (orderId: string, attempts: number = 0) => {
     try {
       console.log('Loading order results for:', orderId);
       const response = await fetch(`/api/orders?orderId=${encodeURIComponent(orderId)}`);
@@ -140,10 +140,19 @@ function ResultsContent() {
         console.log('Result data set in store');
       } else {
         console.log('Order has no result data yet, waiting for processing...');
-        // Order exists but no results yet - keep polling
-        setTimeout(() => {
-          loadOrderResults(orderId);
-        }, 2000);
+        // Order exists but no results yet - keep polling more slowly and cap attempts
+        const MAX_ATTEMPTS = 12; // ~2 minutes if 10s interval
+        const INTERVAL_MS = 15000;
+        if (attempts >= MAX_ATTEMPTS) {
+          console.log('Max attempts reached for loading order results. Stopping.');
+          setIsLoading(false);
+          return;
+        }
+        if (typeof document !== 'undefined' && document.hidden) {
+          setTimeout(() => loadOrderResults(orderId, attempts + 1), INTERVAL_MS);
+        } else {
+          setTimeout(() => loadOrderResults(orderId, attempts + 1), INTERVAL_MS);
+        }
       }
     } catch (error) {
       console.error('Failed to load order results:', error);
