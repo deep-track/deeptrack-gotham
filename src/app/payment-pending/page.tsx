@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function PaymentPendingPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading payment status…</div>}>
+      <PaymentPendingContent />
+    </Suspense>
+  );
+}
+
+function PaymentPendingContent() {
   const search = useSearchParams();
   const router = useRouter();
   const orderId = search.get("orderId");

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  allowedDevOrigins: ["b0a1e5694d63.ngrok-free.app*", "gotham.deeptrack.io*"],
 };
 
 export default nextConfig;

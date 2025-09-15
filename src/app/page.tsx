@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { UploadArea } from "@/components/upload/upload-area";
@@ -13,6 +13,14 @@ import { useUser } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function Dashboard() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading…</div>}>
+      <DashboardContent />
+    </Suspense>
+  );
+}
+
+function DashboardContent() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();

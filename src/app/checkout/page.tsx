@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,14 @@ import { useDashboardStore } from "@/lib/store";
 import Image from "next/image";
 
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading checkout...</div>}>
+      <CheckoutPageContent />
+    </Suspense>
+  );
+}
+
+function CheckoutPageContent() {
   const search = useSearchParams();
   const router = useRouter();
   const orderId = search?.get("orderId") ?? "";

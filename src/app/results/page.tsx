@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,14 @@ interface RealityDefenderModel {
 
 
 export default function Results() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading results…</div>}>
+      <ResultsContent />
+    </Suspense>
+  );
+}
+
+function ResultsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resultData = useDashboardStore((state) => state.resultData);
