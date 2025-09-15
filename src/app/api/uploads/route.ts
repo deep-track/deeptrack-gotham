@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import tursoDB from "@/lib/turso-db";
 
 export async function POST(req: Request) {
+  // Ensure database tables are initialized
+  try {
+    await tursoDB.initTables();
+  } catch (error) {
+    console.error("Failed to initialize database tables:", error);
+    return NextResponse.json(
+      { error: "Database initialization failed" },
+      { status: 500 }
+    );
+  }
   try {
     const formData = await req.formData();
     const media = formData.get("media") as File | null;
@@ -33,7 +43,7 @@ export async function POST(req: Request) {
 
     const filename = media.name || "upload";
     const size = media.size;
-    // Create upload record in database (no file storage)
+    // Create upload record in database
     const upload = await tursoDB.createUpload({
       filename: media.name,
       size: media.size,
@@ -43,6 +53,17 @@ export async function POST(req: Request) {
         uploadedAt: new Date().toISOString(),
       },
     });
+
+    // Persist base64 data so background processing can read it
+    try {
+      const arrayBuffer = await media.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64 = buffer.toString("base64");
+      const dataUrl = `data:${media.type};base64,${base64}`;
+      await tursoDB.setUploadData(upload.id, dataUrl);
+    } catch (e) {
+      console.warn("Failed to persist base64 for upload", upload.id, e);
+    }
 
     return NextResponse.json({
       uploadId: upload.id,

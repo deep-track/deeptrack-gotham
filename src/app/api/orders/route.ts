@@ -3,6 +3,16 @@ import { auth } from "@clerk/nextjs/server";
 import tursoDB from "@/lib/turso-db";
 
 export async function POST(req: Request) {
+  // Ensure database tables are initialized
+  try {
+    await tursoDB.initTables();
+  } catch (error) {
+    console.error("Failed to initialize database tables:", error);
+    return NextResponse.json(
+      { error: "Database initialization failed" },
+      { status: 500 }
+    );
+  }
   try {
     // Authentication not required for creating orders (anonymous uploads allowed)
     // But we'll capture userId if available for later association
@@ -36,6 +46,16 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  // Ensure database tables are initialized
+  try {
+    await tursoDB.initTables();
+  } catch (error) {
+    console.error("Failed to initialize database tables:", error);
+    return NextResponse.json(
+      { error: "Database initialization failed" },
+      { status: 500 }
+    );
+  }
   try {
     const { userId } = await auth();
     const url = new URL(req.url);

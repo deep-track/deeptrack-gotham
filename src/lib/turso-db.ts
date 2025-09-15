@@ -69,6 +69,7 @@ class TursoDB {
 
   async initTables() {
     try {
+      // Create uploads table with all columns
       await this.client.execute(`
         CREATE TABLE IF NOT EXISTS uploads (
           id TEXT PRIMARY KEY,
@@ -77,7 +78,8 @@ class TursoDB {
           mime TEXT NOT NULL,
           status TEXT NOT NULL,
           createdAt TEXT NOT NULL,
-          metadata TEXT
+          metadata TEXT,
+          data TEXT
         );
       `);
 
@@ -96,6 +98,19 @@ class TursoDB {
           result TEXT
         );
       `);
+
+      // Check if data column exists, add if missing
+      try {
+        const result = await this.client.execute(`PRAGMA table_info(uploads)`);
+        const hasDataColumn = result.rows.some((row: any) => row.name === 'data');
+        
+        if (!hasDataColumn) {
+          await this.client.execute(`ALTER TABLE uploads ADD COLUMN data TEXT`);
+          console.log("✅ Added data column to uploads table");
+        }
+      } catch (e) {
+        console.warn("Could not check/add data column:", e);
+      }
 
       console.log("✅ Tables ensured");
     } catch (error) {
@@ -127,8 +142,8 @@ class TursoDB {
     };
 
     await this.client.execute(
-      `INSERT INTO uploads (id, filename, size, mime, status, createdAt, metadata)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO uploads (id, filename, size, mime, status, createdAt, metadata, data)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`,
       [
         rec.id,
         rec.filename,
@@ -159,6 +174,7 @@ class TursoDB {
       mime: row.mime as string,
       status: row.status as UploadStatus,
       createdAt: row.createdAt as string,
+      data: (row as any).data as string | undefined,
       metadata: row.metadata ? JSON.parse(row.metadata as string) : {},
     };
   }
@@ -173,6 +189,7 @@ class TursoDB {
       mime: row.mime,
       status: row.status,
       createdAt: row.createdAt,
+      data: row.data,
       metadata: row.metadata ? JSON.parse(row.metadata) : {},
     }));
   }
@@ -185,6 +202,14 @@ class TursoDB {
       status,
       id,
     ]);
+    return this.getUpload(id);
+  }
+
+  async setUploadData(id: string, dataBase64: string): Promise<UploadRecord | undefined> {
+    await this.client.execute(
+      `UPDATE uploads SET data = ?, updatedAt = COALESCE(updatedAt, ?) WHERE id = ?`,
+      [dataBase64, nowIso(), id]
+    );
     return this.getUpload(id);
   }
 
