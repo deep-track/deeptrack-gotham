@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { ClerkProvider } from '@clerk/nextjs';
 import EnsureFullName from './EnsureFullName';
+import HydrateHistory from './prefetch-history';
 
 const inter = Inter({ subsets: ['latin'], fallback: ['sans-serif'] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ClerkProvider>
           <EnsureFullName />
+          <HydrateHistory />
           <div className="min-h-screen flex flex-col">
             <Header />
             <div className="flex flex-1 overflow-hidden">

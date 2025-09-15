@@ -87,9 +87,36 @@ export async function GET(req: Request) {
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      
+
+      const url = new URL(req.url);
+      const includeResult = url.searchParams.get("includeResult") === "1";
+      const limitParam = url.searchParams.get("limit");
+      const limit = limitParam ? Math.max(1, Math.min(100, parseInt(limitParam))) : undefined;
+
       const allOrders = await tursoDB.listOrders();
-      const userOrders = allOrders.filter((order: any) => order.userId === userId);
+      let userOrders = allOrders.filter((order: any) => order.userId === userId);
+      // Newest first
+      userOrders.sort((a: any, b: any) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+      if (limit) userOrders = userOrders.slice(0, limit);
+
+      if (!includeResult) {
+        // Return lightweight summaries to avoid sending large base64 payloads
+        const summaries = userOrders.map((o: any) => ({
+          id: o.id,
+          uploadIds: o.uploadIds,
+          userId: o.userId,
+          totalAmountCents: o.totalAmountCents,
+          currency: o.currency,
+          status: o.status,
+          createdAt: o.createdAt,
+          updatedAt: o.updatedAt,
+          paymentRef: o.paymentRef,
+          notes: o.notes,
+          hasResult: !!o.result,
+        }));
+        return NextResponse.json(summaries);
+      }
+
       return NextResponse.json(userOrders);
     }
   } catch (err: any) {

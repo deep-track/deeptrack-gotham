@@ -207,8 +207,8 @@ class TursoDB {
 
   async setUploadData(id: string, dataBase64: string): Promise<UploadRecord | undefined> {
     await this.client.execute(
-      `UPDATE uploads SET data = ?, updatedAt = COALESCE(updatedAt, ?) WHERE id = ?`,
-      [dataBase64, nowIso(), id]
+      `UPDATE uploads SET data = ? WHERE id = ?`,
+      [dataBase64, id]
     );
     return this.getUpload(id);
   }

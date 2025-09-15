@@ -40,10 +40,12 @@ type DashboardStore = {
   links: { link: string; source: string }[]
   files: File[]
   resultData: ResultData[]
+  cachedOrders: any[]
   setLinks: (links: { link: string; source: string }[]) => void
   setFiles: (files: File[]) => void
   setResultData: (resultData: ResultData[] | ResultData) => void
   clearResults: () => void
+  setCachedOrders: (orders: any[]) => void
 }
 
 export const useDashboardStore = create<DashboardStore>()(
@@ -52,6 +54,7 @@ export const useDashboardStore = create<DashboardStore>()(
       files: [],
       links: [],
       resultData: [],
+      cachedOrders: [],
       setFiles: (files) => set({ files }),
       setLinks: (links) => set({ links }),
       setResultData: (resultData) =>
@@ -62,6 +65,7 @@ export const useDashboardStore = create<DashboardStore>()(
           ],
         })),
       clearResults: () => set({ resultData: [] }),
+      setCachedOrders: (orders) => set({ cachedOrders: Array.isArray(orders) ? orders : [] }),
     }),
     {
       name: "deeptrack-history", // localStorage key

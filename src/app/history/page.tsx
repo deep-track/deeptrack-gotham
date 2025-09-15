@@ -20,6 +20,8 @@ export default function History() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("date")
   const { resultData } = useDashboardStore()
+  const cachedOrders = useDashboardStore((s) => s.cachedOrders)
+  const setCachedOrders = useDashboardStore((s) => s.setCachedOrders)
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export default function History() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/orders', { signal: controller.signal })
+      const res = await fetch('/api/orders?limit=50', { signal: controller.signal })
       if (res.status === 401) {
         setOrders([])
         return
@@ -47,7 +49,9 @@ export default function History() {
         throw new Error(txt || `Failed to load orders (${res.status})`)
       }
       const json = await res.json()
-      setOrders(Array.isArray(json) ? json : [])
+      const list = Array.isArray(json) ? json : []
+      setOrders(list)
+      setCachedOrders(list)
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       setError(e?.message || 'Failed to load history')
@@ -95,8 +99,8 @@ export default function History() {
     }
   }
 
-  const orderBackedItems = (orders || [])
-    .filter((o: any) => o?.result)
+  const orderBackedItems = (orders.length > 0 ? orders : (cachedOrders || []))
+    .filter((o: any) => o?.hasResult || o?.result)
     .map((o: any, i: number) => mapResultLike({ result: o.result, updatedAt: o.updatedAt }, i))
 
   const localItems = (resultData ?? []).map((r, i) => mapResultLike(r, i))
@@ -386,7 +390,7 @@ export default function History() {
                           <Button size="sm" variant="outline" onClick={() => router.push(`/results?orderId=${encodeURIComponent(o.id)}${o.paymentRef ? `&ref=${encodeURIComponent(o.paymentRef)}` : ''}`)}>
                             View status
                           </Button>
-                        ) : o.status === 'completed' && o.result ? (
+                        ) : o.status === 'completed' && (o.hasResult || o.result) ? (
                           <Button size="sm" onClick={() => router.push(`/results?orderId=${encodeURIComponent(o.id)}`)}>
                             View results
                           </Button>
