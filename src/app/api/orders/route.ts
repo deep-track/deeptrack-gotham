@@ -81,7 +81,11 @@ export async function GET(req: Request) {
         }
       }
       
-      return NextResponse.json(order);
+      {
+        const res = NextResponse.json(order);
+        res.headers.set('Cache-Control', 'private, max-age=5, stale-while-revalidate=15');
+        return res;
+      }
     } else {
       // Get orders - require authentication for listing
       if (!userId) {
@@ -114,10 +118,18 @@ export async function GET(req: Request) {
           notes: o.notes,
           hasResult: !!o.result,
         }));
-        return NextResponse.json(summaries);
+        {
+          const res = NextResponse.json(summaries);
+          res.headers.set('Cache-Control', 'private, max-age=15, stale-while-revalidate=60');
+          return res;
+        }
       }
 
-      return NextResponse.json(userOrders);
+      {
+        const res = NextResponse.json(userOrders);
+        res.headers.set('Cache-Control', 'private, max-age=10, stale-while-revalidate=60');
+        return res;
+      }
     }
   } catch (err: any) {
     console.error("/api/orders GET error:", err);

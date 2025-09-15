@@ -102,7 +102,7 @@ class TursoDB {
       // Check if data column exists, add if missing
       try {
         const result = await this.client.execute(`PRAGMA table_info(uploads)`);
-        const hasDataColumn = result.rows.some((row: any) => row.name === 'data');
+        const hasDataColumn = (result.rows as Array<{ name: string }>).some((row) => row.name === 'data');
         
         if (!hasDataColumn) {
           await this.client.execute(`ALTER TABLE uploads ADD COLUMN data TEXT`);
@@ -110,6 +110,16 @@ class TursoDB {
         }
       } catch (e) {
         console.warn("Could not check/add data column:", e);
+      }
+
+      // Create performance indexes (idempotent)
+      try {
+        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_user_updated ON orders (userId, updatedAt)`);
+        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_paymentRef ON orders (paymentRef)`);
+        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status)`);
+        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads (createdAt)`);
+      } catch (e) {
+        console.warn("Index creation warning:", e);
       }
 
       console.log("✅ Tables ensured");
@@ -182,15 +192,15 @@ class TursoDB {
   async listUploads(): Promise<UploadRecord[]> {
     const result = await this.client.execute(`SELECT * FROM uploads`);
 
-    return result.rows.map((row: any) => ({
-      id: row.id,
-      filename: row.filename,
-      size: row.size,
-      mime: row.mime,
-      status: row.status,
-      createdAt: row.createdAt,
-      data: row.data,
-      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+    return (result.rows as Array<Record<string, unknown>>).map((row) => ({
+      id: row.id as string,
+      filename: row.filename as string,
+      size: row.size as number,
+      mime: row.mime as string,
+      status: row.status as UploadStatus,
+      createdAt: row.createdAt as string,
+      data: row.data as string | undefined,
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata as string) : (row.metadata as Record<string, unknown> | undefined) || {},
     }));
   }
 
@@ -294,18 +304,18 @@ class TursoDB {
   async listOrders(): Promise<OrderRecord[]> {
     const result = await this.client.execute(`SELECT * FROM orders`);
 
-    return result.rows.map((row: any) => ({
-      id: row.id,
-      uploadIds: JSON.parse(row.uploadIds),
-      userId: row.userId,
-      totalAmountCents: row.totalAmountCents,
-      currency: row.currency,
-      status: row.status,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      paymentRef: row.paymentRef,
-      notes: row.notes,
-      result: row.result ? JSON.parse(row.result) : null,
+    return (result.rows as Array<Record<string, unknown>>).map((row) => ({
+      id: row.id as string,
+      uploadIds: JSON.parse(row.uploadIds as string),
+      userId: (row.userId as string) || null,
+      totalAmountCents: row.totalAmountCents as number,
+      currency: row.currency as string,
+      status: row.status as OrderStatus,
+      createdAt: row.createdAt as string,
+      updatedAt: row.updatedAt as string,
+      paymentRef: (row.paymentRef as string) || null,
+      notes: (row.notes as string) || "",
+      result: row.result ? JSON.parse(row.result as string) : null,
     }));
   }
 

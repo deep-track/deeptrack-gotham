@@ -14,9 +14,15 @@ const isOrderProtectedRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
+  const url = new URL(req.url);
+  const hasOrderContext = Boolean(url.searchParams.get('orderId') || url.searchParams.get('ref'));
   
   // Protect routes that always require authentication
   if (isProtectedRoute(req)) {
+    // Allow anonymous access to payment/result pages when returning from Paystack
+    if ((req.nextUrl.pathname.startsWith('/payment-pending') || req.nextUrl.pathname.startsWith('/results')) && hasOrderContext) {
+      return NextResponse.next();
+    }
     if (!userId) {
       // For API routes, return 401
       if (req.nextUrl.pathname.startsWith('/api/')) {
