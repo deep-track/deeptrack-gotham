@@ -102,7 +102,7 @@ class TursoDB {
       // Check if data column exists, add if missing
       try {
         const result = await this.client.execute(`PRAGMA table_info(uploads)`);
-        const hasDataColumn = (result.rows as Array<{ name: string }>).some((row) => row.name === 'data');
+        const hasDataColumn = (result.rows as unknown as Array<{ name?: string }>).some((row) => row.name === 'data');
         
         if (!hasDataColumn) {
           await this.client.execute(`ALTER TABLE uploads ADD COLUMN data TEXT`);
