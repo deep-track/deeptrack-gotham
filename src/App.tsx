@@ -18,29 +18,29 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <div className="min-h-screen bg-background text-foreground theme-transition">
-              <Header />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <div className="min-h-screen bg-background text-foreground theme-transition">
+            <Header />
 
-              <div className="flex min-h-0 flex-1 relative">
+            <div className="flex min-h-0 flex-1 relative">
 
-                <main className="flex-1 p-4 overflow-auto">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/results" element={<Results />} />
-                    <Route path="/history" element={<History />} />
-                    <Route path="*" element={<NotFound />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/login" element={<Login />} />
-                  </Routes>
-                </main>
-              </div>
+              <main className="flex-1 p-4 overflow-auto">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/results" element={<Results />} />
+                  <Route path="/history" element={<History />} />
+                  <Route path="*" element={<NotFound />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/login" element={<Login />} />
+                </Routes>
+              </main>
             </div>
-          </BrowserRouter>
-        </TooltipProvider>
+          </div>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };

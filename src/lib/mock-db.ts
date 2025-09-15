@@ -148,10 +148,29 @@ class MockDB {
   }
 
   getUpload(id: string): UploadRecord | undefined {
-    const row = this.db.prepare(`SELECT * FROM uploads WHERE id = ?`).get(id);
+    const row = this.db
+      .prepare(`SELECT * FROM uploads WHERE id = ?`)
+      .get(id) as
+      | {
+          id: string;
+          filename: string;
+          size: number;
+          mime: string;
+          s3Key?: string | null;
+          status: UploadStatus;
+          createdAt: string;
+          metadata?: string;
+        }
+      | undefined;
     if (!row) return undefined;
     return {
-      ...row,
+      id: row.id,
+      filename: row.filename,
+      size: row.size,
+      mime: row.mime,
+      s3Key: row.s3Key,
+      status: row.status,
+      createdAt: row.createdAt,
       metadata: row.metadata ? JSON.parse(row.metadata) : {},
     };
   }
@@ -228,7 +247,9 @@ class MockDB {
   }
 
   getOrder(id: string): OrderRecord | undefined {
-    const row = this.db.prepare(`SELECT * FROM orders WHERE id = ?`).get(id);
+    const row = this.db
+      .prepare(`SELECT * FROM orders WHERE id = ?`)
+      .get(id) as any;
     if (!row) return undefined;
     return {
       ...row,

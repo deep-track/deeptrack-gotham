@@ -5,7 +5,8 @@ import Footer from '@/components/layout/Footer';
 import { ClerkProvider } from '@clerk/nextjs';
 import EnsureFullName from './EnsureFullName';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], fallback: ['sans-serif'] });
+
 
 export const metadata = {
   title: 'My Gotham App',
