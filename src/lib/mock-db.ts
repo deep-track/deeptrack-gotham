@@ -268,7 +268,10 @@ class MockDB {
       .run(JSON.stringify(result), nowIso(), id);
   }
 
-  setOrderResult(id: string, result: Record<string, unknown>): OrderRecord | undefined {
+  setOrderResult(
+    id: string,
+    result: Record<string, unknown>
+  ): OrderRecord | undefined {
     this.updateOrderResult(id, result);
     return this.getOrder(id);
   }

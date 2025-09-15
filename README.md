@@ -13,7 +13,7 @@ A secure Next.js application for AI-powered media verification with integrated p
 
 ## Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm/yarn/pnpm
 - Accounts with the following services:
   - [Turso](https://turso.tech/) - Database
@@ -24,55 +24,65 @@ A secure Next.js application for AI-powered media verification with integrated p
 ## Environment Setup
 
 1. **Copy the environment template:**
+
    ```bash
    cp .env.example .env
    ```
 
 2. **Configure your environment variables in `.env`:**
 
-### Database Configuration (Turso)
+### Database Configuration (Turso) 
+
 ```bash
 TURSO_DATABASE_URL=libsql://your-database-name.turso.io
 TURSO_AUTH_TOKEN=your_turso_auth_token
 ```
 
 **Getting Turso credentials:**
+
 - Sign up at [turso.tech](https://turso.tech/)
 - Create a new database
 - Copy the database URL from your dashboard
 - Generate an auth token in Settings → Tokens
 
 ### Authentication (Clerk)
+
 ```bash
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 ```
 
 **Getting Clerk credentials:**
+
 - Sign up at [clerk.com](https://clerk.com/)
 - Create a new application
 - Copy keys from Dashboard → API Keys
 
 ### Payment Processing (Paystack)
+
 ```bash
 PAYSTACK_SECRET_KEY=sk_test_...
 ```
 
 **Getting Paystack credentials:**
+
 - Sign up at [paystack.com](https://paystack.com/)
 - Navigate to Settings → API Keys & Webhooks
 - Copy your test keys (use live keys for production)
 
 ### AI Verification (Reality Defender)
+
 ```bash
 REALITY_DEFENDER_API_KEY=your_api_key
 ```
 
 **Getting Reality Defender API key:**
+
 - Contact [Reality Defender](https://realitydefender.com/) for API access
 - Add your API key to the environment variables
 
 ### App Configuration
+
 ```bash
 NEXT_PUBLIC_APP_ORIGIN=http://localhost:3000
 ```
@@ -80,12 +90,14 @@ NEXT_PUBLIC_APP_ORIGIN=http://localhost:3000
 ## Installation & Setup
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd deeptrack-gotham
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    # or
@@ -97,6 +109,7 @@ NEXT_PUBLIC_APP_ORIGIN=http://localhost:3000
 3. **Set up environment variables** (see Environment Setup above)
 
 4. **Start the development server:**
+
    ```bash
    npm run dev
    # or
@@ -152,6 +165,7 @@ The application uses Turso DB with the following tables:
 ### Environment Variables for Production
 
 Ensure all environment variables are set with production values:
+
 - Use Turso production database
 - Use Clerk production keys
 - Use Paystack live keys

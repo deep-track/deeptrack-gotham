@@ -12,7 +12,7 @@ export default function EnsureFullName() {
     if (!isLoaded || !user) return;
 
     if (!user.firstName || !user.lastName) {
-      setShowModal(true);
+      setShowModal(false);
     }
   }, [user, isLoaded]);
 

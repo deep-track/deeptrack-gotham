@@ -1,4 +1,4 @@
-import { createClient } from "@libsql/client";
+import { Client, createClient } from "@libsql/client";
 
 export type UploadStatus = "uploaded" | "deleted" | "expired";
 export type OrderStatus =
@@ -52,18 +52,22 @@ function computePriceCentsForUploads(uploadCount: number): number {
 }
 
 class TursoDB {
-  private client;
+  private client: Client;
 
   constructor() {
+    if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+      throw new Error(
+        "❌ Missing Turso env vars: TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set"
+      );
+    }
+
     this.client = createClient({
-      url: process.env.TURSO_DATABASE_URL || "libsql://deeptrack-gotham-peter-okwara.aws-ap-south-1.turso.io",
+      url: process.env.TURSO_DATABASE_URL,
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
-    
-    this.initTables();
   }
 
-  private async initTables() {
+  async initTables() {
     try {
       await this.client.execute(`
         CREATE TABLE IF NOT EXISTS uploads (
@@ -92,9 +96,16 @@ class TursoDB {
           result TEXT
         );
       `);
+
+      console.log("✅ Tables ensured");
     } catch (error) {
-      console.error("Failed to initialize tables:", error);
+      console.error("❌ Failed to initialize tables:", error);
+      throw error;
     }
+  }
+
+  async query(sql: string, params: any[] = []) {
+    return this.client.execute({ sql, args: params });
   }
 
   // Uploads
@@ -154,7 +165,7 @@ class TursoDB {
 
   async listUploads(): Promise<UploadRecord[]> {
     const result = await this.client.execute(`SELECT * FROM uploads`);
-    
+
     return result.rows.map((row: any) => ({
       id: row.id,
       filename: row.filename,
@@ -166,11 +177,14 @@ class TursoDB {
     }));
   }
 
-  async setUploadStatus(id: string, status: UploadStatus): Promise<UploadRecord | undefined> {
-    await this.client.execute(
-      `UPDATE uploads SET status = ? WHERE id = ?`,
-      [status, id]
-    );
+  async setUploadStatus(
+    id: string,
+    status: UploadStatus
+  ): Promise<UploadRecord | undefined> {
+    await this.client.execute(`UPDATE uploads SET status = ? WHERE id = ?`, [
+      status,
+      id,
+    ]);
     return this.getUpload(id);
   }
 
@@ -190,8 +204,10 @@ class TursoDB {
     notes?: string;
   }): Promise<OrderRecord> {
     const id = uid("ord");
-    const totalAmountCents = computePriceCentsForUploads(params.uploadIds.length);
-    
+    const totalAmountCents = computePriceCentsForUploads(
+      params.uploadIds.length
+    );
+
     const rec: OrderRecord = {
       id,
       uploadIds: params.uploadIds,
@@ -252,7 +268,7 @@ class TursoDB {
 
   async listOrders(): Promise<OrderRecord[]> {
     const result = await this.client.execute(`SELECT * FROM orders`);
-    
+
     return result.rows.map((row: any) => ({
       id: row.id,
       uploadIds: JSON.parse(row.uploadIds),
@@ -268,7 +284,10 @@ class TursoDB {
     }));
   }
 
-  async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderRecord | undefined> {
+  async updateOrderStatus(
+    id: string,
+    status: OrderStatus
+  ): Promise<OrderRecord | undefined> {
     await this.client.execute(
       `UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?`,
       [status, nowIso(), id]
@@ -276,7 +295,10 @@ class TursoDB {
     return this.getOrder(id);
   }
 
-  async setOrderPaymentRef(id: string, paymentRef: string): Promise<OrderRecord | undefined> {
+  async setOrderPaymentRef(
+    id: string,
+    paymentRef: string
+  ): Promise<OrderRecord | undefined> {
     await this.client.execute(
       `UPDATE orders SET paymentRef = ?, updatedAt = ? WHERE id = ?`,
       [paymentRef, nowIso(), id]
@@ -284,19 +306,28 @@ class TursoDB {
     return this.getOrder(id);
   }
 
-  async updateOrderResult(id: string, result: Record<string, unknown>): Promise<void> {
+  async updateOrderResult(
+    id: string,
+    result: Record<string, unknown>
+  ): Promise<void> {
     await this.client.execute(
       `UPDATE orders SET result = ?, updatedAt = ? WHERE id = ?`,
       [JSON.stringify(result), nowIso(), id]
     );
   }
 
-  async setOrderResult(id: string, result: Record<string, unknown>): Promise<OrderRecord | undefined> {
+  async setOrderResult(
+    id: string,
+    result: Record<string, unknown>
+  ): Promise<OrderRecord | undefined> {
     await this.updateOrderResult(id, result);
     return this.getOrder(id);
   }
 
-  async updateOrderUser(id: string, userId: string): Promise<OrderRecord | undefined> {
+  async updateOrderUser(
+    id: string,
+    userId: string
+  ): Promise<OrderRecord | undefined> {
     await this.client.execute(
       `UPDATE orders SET userId = ?, updatedAt = ? WHERE id = ?`,
       [userId, nowIso(), id]
