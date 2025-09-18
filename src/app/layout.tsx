@@ -8,10 +8,12 @@ import HydrateHistory from './prefetch-history';
 
 const inter = Inter({ subsets: ['latin'], fallback: ['sans-serif'] });
 
-
 export const metadata = {
-  title: 'My Gotham App',
-  description: 'Verifies images using App Router',
+  title: 'Deeptrack Gotham - AI Image Verification',
+  description: 'Verify and enhance images with AI-powered tools. Upload, analyse, and improve your images seamlessly.',
+  icons: {
+    icon: 'logo-light.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
