@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'], fallback: ['sans-serif'] });
 
 export const metadata = {
   title: 'Deeptrack Gotham ',
-  description: 'Deepfake verification made easy.',
+  description: 'Deepfake Verification made easy.',
   icons: {
     icon: 'logo-light.ico',
   },

@@ -34,7 +34,26 @@ export async function POST(req: Request) {
     }
 
     // File type validation (images only)
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const allowedTypes = [
+      // Images
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+
+      // Audio
+      "audio/mpeg", 
+      "audio/wav",
+
+      // Video
+      "video/mp4",
+      "video/webm",
+      "video/quicktime", 
+      "video/x-msvideo",
+      "video/x-ms-wmv",  
+      "video/x-matroska", 
+      "video/x-flv"
+    ];
+    
     if (!allowedTypes.includes(media.type)) {
       return NextResponse.json({ 
         error: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}` 
