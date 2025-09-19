@@ -25,20 +25,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid file format" }, { status: 400 });
     }
 
-    // File size validation (10MB for images, 50MB for videos)
-    const isVideo = media.type.startsWith("video/");
-    const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for videos, 10MB for images
+  // File size validation (10MB for images, 50MB for videos)
+  const isVideo = media.type.startsWith("video/");
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024; // 50MB for videos, 10MB for images
 
-    if (media.size > maxSize) {
-      return NextResponse.json(
-        {
-          error: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB for ${
-            isVideo ? "videos" : "images"
-          }`,
-        },
-        { status: 400 }
-      );
-    }
+  if (media.size > maxSize) {
+    return NextResponse.json(
+      {
+        error: `File too large. Maximum size is ${maxSize / 1024 / 1024}MB for ${
+          isVideo ? "videos" : "images"
+        }`,
+      },
+      { status: 400 }
+    );
+  }
 
     // File type validation (images only)
     const allowedTypes = [
