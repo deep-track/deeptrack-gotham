@@ -204,8 +204,12 @@ export function UploadArea({ onFileSelect, selectedFiles = [], onClearFiles }: U
             Drag and drop your files here, or click to browse files
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Supports: JPG, PNG, WebP, MP3, WAV (Max 10MB each) • Multiple files supported
+            Supports: JPG, PNG, WebP, MP3, WAV, MP4, WebM, MOV, AVI, WMV, MKV, FLV 
           </p>
+         <p className="text-xs sm:text-sm text-muted-foreground">
+            (Max 10MB each) • Multiple files supported
+          </p>
+
         </div>
 
         <Button

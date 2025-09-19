@@ -243,8 +243,8 @@ function DashboardContent() {
                 onClearFiles={() => setSelectedFiles([])}
               />
               <p className="text-xs text-muted-foreground">
-                Max file size 300MB. Accepted formats: JPG, PNG, MP3, WAV, MP4,
-                WebM.
+                  Max file size: 300MB.  
+                  Accepted formats: JPG, PNG, MP3, WAV, WebP, MP4, WebM, MOV, AVI, WMV, MKV, FLV.
               </p>
             </CardContent>
           </Card>

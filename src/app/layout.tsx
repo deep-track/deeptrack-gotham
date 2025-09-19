@@ -9,8 +9,8 @@ import HydrateHistory from './prefetch-history';
 const inter = Inter({ subsets: ['latin'], fallback: ['sans-serif'] });
 
 export const metadata = {
-  title: 'Deeptrack Gotham - AI Image Verification',
-  description: 'Verify and enhance images with AI-powered tools. Upload, analyse, and improve your images seamlessly.',
+  title: 'Deeptrack Gotham ',
+  description: 'Deepfake verification made easy.',
   icons: {
     icon: 'logo-light.ico',
   },
