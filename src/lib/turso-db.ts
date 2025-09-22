@@ -11,6 +11,14 @@ export type OrderStatus =
   | "failed"
   | "cancelled";
 
+export type UserRecord = {
+  id: string;
+  email: string;
+  tokens: number; // 100 amount = 1 token, so tokens are stored as whole numbers
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type UploadRecord = {
   id: string;
   filename: string;
@@ -99,11 +107,24 @@ class TursoDB {
         );
       `);
 
+      // Create users table for token management
+      await this.client.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          email TEXT UNIQUE NOT NULL,
+          tokens INTEGER NOT NULL DEFAULT 0,
+          createdAt TEXT NOT NULL,
+          updatedAt TEXT NOT NULL
+        );
+      `);
+
       // Check if data column exists, add if missing
       try {
         const result = await this.client.execute(`PRAGMA table_info(uploads)`);
-        const hasDataColumn = (result.rows as unknown as Array<{ name?: string }>).some((row) => row.name === 'data');
-        
+        const hasDataColumn = (
+          result.rows as unknown as Array<{ name?: string }>
+        ).some((row) => row.name === "data");
+
         if (!hasDataColumn) {
           await this.client.execute(`ALTER TABLE uploads ADD COLUMN data TEXT`);
           console.log("✅ Added data column to uploads table");
@@ -114,13 +135,27 @@ class TursoDB {
 
       // Create performance indexes (idempotent)
       try {
-        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_user_updated ON orders (userId, updatedAt)`);
-        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_paymentRef ON orders (paymentRef)`);
-        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status)`);
-        await this.client.execute(`CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads (createdAt)`);
+        await this.client.execute(
+          `CREATE INDEX IF NOT EXISTS idx_orders_user_updated ON orders (userId, updatedAt)`
+        );
+        await this.client.execute(
+          `CREATE INDEX IF NOT EXISTS idx_orders_paymentRef ON orders (paymentRef)`
+        );
+        await this.client.execute(
+          `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status)`
+        );
+        await this.client.execute(
+          `CREATE INDEX IF NOT EXISTS idx_uploads_created ON uploads (createdAt)`
+        );
+        await this.client.execute(
+          `CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)`
+        );
       } catch (e) {
         console.warn("Index creation warning:", e);
       }
+
+      // Initialize demo user if not exists
+      await this.initDemoUser();
 
       console.log("✅ Tables ensured");
     } catch (error) {
@@ -129,7 +164,35 @@ class TursoDB {
     }
   }
 
-  async query(sql: string, params: any[] = []) {
+  async initDemoUser() {
+    const DEMO_EMAIL = "info@kenyaeditorsguild.org";
+    const DEMO_TOKENS = 300;
+
+    try {
+      // Check if demo user exists
+      const existingUser = await this.getUserByEmail(DEMO_EMAIL);
+      if (!existingUser) {
+        // Create demo user with 300 tokens
+        await this.createUser({
+          email: DEMO_EMAIL,
+          tokens: DEMO_TOKENS,
+        });
+        console.log(
+          `✅ Demo user created with ${DEMO_TOKENS} tokens: ${DEMO_EMAIL}`
+        );
+      } else if (existingUser.tokens < DEMO_TOKENS) {
+        // Top up demo user to ensure they always have 300 tokens
+        await this.updateUserTokens(existingUser.id, DEMO_TOKENS);
+        console.log(
+          `✅ Demo user tokens topped up to ${DEMO_TOKENS}: ${DEMO_EMAIL}`
+        );
+      }
+    } catch (error) {
+      console.warn("Could not initialize demo user:", error);
+    }
+  }
+
+  async query(sql: string, params: (string | number | null)[] = []) {
     return this.client.execute({ sql, args: params });
   }
 
@@ -184,7 +247,7 @@ class TursoDB {
       mime: row.mime as string,
       status: row.status as UploadStatus,
       createdAt: row.createdAt as string,
-      data: (row as any).data as string | undefined,
+      data: (row as Record<string, unknown>).data as string | undefined,
       metadata: row.metadata ? JSON.parse(row.metadata as string) : {},
     };
   }
@@ -200,7 +263,10 @@ class TursoDB {
       status: row.status as UploadStatus,
       createdAt: row.createdAt as string,
       data: row.data as string | undefined,
-      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata as string) : (row.metadata as Record<string, unknown> | undefined) || {},
+      metadata:
+        typeof row.metadata === "string"
+          ? JSON.parse(row.metadata as string)
+          : (row.metadata as Record<string, unknown> | undefined) || {},
     }));
   }
 
@@ -215,11 +281,14 @@ class TursoDB {
     return this.getUpload(id);
   }
 
-  async setUploadData(id: string, dataBase64: string): Promise<UploadRecord | undefined> {
-    await this.client.execute(
-      `UPDATE uploads SET data = ? WHERE id = ?`,
-      [dataBase64, id]
-    );
+  async setUploadData(
+    id: string,
+    dataBase64: string
+  ): Promise<UploadRecord | undefined> {
+    await this.client.execute(`UPDATE uploads SET data = ? WHERE id = ?`, [
+      dataBase64,
+      id,
+    ]);
     return this.getUpload(id);
   }
 
@@ -373,6 +442,132 @@ class TursoDB {
   async clearAll(): Promise<void> {
     await this.client.execute(`DELETE FROM uploads`);
     await this.client.execute(`DELETE FROM orders`);
+    await this.client.execute(`DELETE FROM users`);
+  }
+
+  // User management with token system
+  async createUser(params: {
+    email: string;
+    tokens?: number;
+  }): Promise<UserRecord> {
+    const id = uid("usr");
+    const now = nowIso();
+    const rec: UserRecord = {
+      id,
+      email: params.email,
+      tokens: params.tokens ?? 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await this.client.execute(
+      `INSERT INTO users (id, email, tokens, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?)`,
+      [rec.id, rec.email, rec.tokens, rec.createdAt, rec.updatedAt]
+    );
+
+    return rec;
+  }
+
+  async getUserById(id: string): Promise<UserRecord | undefined> {
+    const result = await this.client.execute(
+      `SELECT * FROM users WHERE id = ?`,
+      [id]
+    );
+
+    const row = result.rows[0];
+    if (!row) return undefined;
+
+    return {
+      id: row.id as string,
+      email: row.email as string,
+      tokens: row.tokens as number,
+      createdAt: row.createdAt as string,
+      updatedAt: row.updatedAt as string,
+    };
+  }
+
+  async getUserByEmail(email: string): Promise<UserRecord | undefined> {
+    const result = await this.client.execute(
+      `SELECT * FROM users WHERE email = ?`,
+      [email]
+    );
+
+    const row = result.rows[0];
+    if (!row) return undefined;
+
+    return {
+      id: row.id as string,
+      email: row.email as string,
+      tokens: row.tokens as number,
+      createdAt: row.createdAt as string,
+      updatedAt: row.updatedAt as string,
+    };
+  }
+
+  async updateUserTokens(
+    id: string,
+    tokens: number
+  ): Promise<UserRecord | undefined> {
+    await this.client.execute(
+      `UPDATE users SET tokens = ?, updatedAt = ? WHERE id = ?`,
+      [tokens, nowIso(), id]
+    );
+    return this.getUserById(id);
+  }
+
+  async deductTokens(
+    userId: string,
+    amount: number = 1
+  ): Promise<{ success: boolean; remainingTokens?: number; error?: string }> {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) {
+        return { success: false, error: "User not found" };
+      }
+
+      if (user.tokens < amount) {
+        return {
+          success: false,
+          error: "Insufficient tokens",
+          remainingTokens: user.tokens,
+        };
+      }
+
+      const newTokenCount = user.tokens - amount;
+      await this.updateUserTokens(userId, newTokenCount);
+
+      return { success: true, remainingTokens: newTokenCount };
+    } catch (error) {
+      console.error("Token deduction error:", error);
+      return { success: false, error: "Failed to deduct tokens" };
+    }
+  }
+
+  async addTokens(
+    userId: string,
+    amount: number
+  ): Promise<UserRecord | undefined> {
+    const user = await this.getUserById(userId);
+    if (!user) return undefined;
+
+    const newTokenCount = user.tokens + amount;
+    return this.updateUserTokens(userId, newTokenCount);
+  }
+
+  // Check if user is demo user and bypass payment requirements
+  isDemoUser(email: string): boolean {
+    return email === "info@kenyaeditorsguild.org";
+  }
+
+  // Convert amount (in cents) to tokens (100 cents = 1 token)
+  amountToTokens(amountCents: number): number {
+    return Math.floor(amountCents / 100);
+  }
+
+  // Convert tokens to amount (in cents) (1 token = 100 cents)
+  tokensToAmount(tokens: number): number {
+    return tokens * 100;
   }
 }
 

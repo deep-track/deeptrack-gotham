@@ -18,21 +18,11 @@ export async function POST(req: Request) {
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
     const userEmail = user.emailAddresses[0]?.emailAddress;
-    
+
     if (!userEmail) {
       return NextResponse.json(
         { error: "User email not found" },
         { status: 400 }
-      );
-    }
-
-    if (!PAYSTACK_SECRET) {
-      console.warn(
-        "PAYSTACK_SECRET_KEY is not set. create-paystack will fail in runtime."
-      );
-      return NextResponse.json(
-        { error: "Server not configured: PAYSTACK_SECRET_KEY missing" },
-        { status: 500 }
       );
     }
 
@@ -62,6 +52,42 @@ export async function POST(req: Request) {
     // If order doesn't have a userId yet, assign it to current user
     if (!order.userId) {
       await tursoDB.updateOrderUser(orderId, userId);
+    }
+
+    // Check if this is a demo user - if so, bypass payment and auto-complete
+    if (tursoDB.isDemoUser(userEmail)) {
+      // Create a demo transaction reference
+      const txRef = `DEMO-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 9)}`;
+
+      // Mark order as paid and completed for demo user
+      await tursoDB.setOrderPaymentRef(orderId, txRef);
+      await tursoDB.updateOrderStatus(orderId, "paid");
+
+      // Build result URL for demo user (skip payment page)
+      const origin = req.headers.get("origin") || PUBLIC_ORIGIN;
+      const resultUrl = `${origin}/results?orderId=${encodeURIComponent(
+        orderId
+      )}&ref=${encodeURIComponent(txRef)}`;
+
+      return NextResponse.json({
+        message: "Demo user - payment bypassed",
+        redirect_url: resultUrl,
+        orderId: orderId,
+        reference: txRef,
+        isDemoUser: true,
+      });
+    }
+
+    if (!PAYSTACK_SECRET) {
+      console.warn(
+        "PAYSTACK_SECRET_KEY is not set. create-paystack will fail in runtime."
+      );
+      return NextResponse.json(
+        { error: "Server not configured: PAYSTACK_SECRET_KEY missing" },
+        { status: 500 }
+      );
     }
 
     // Create a unique transaction reference
@@ -112,10 +138,10 @@ export async function POST(req: Request) {
       authorization_url: initJson.data.authorization_url,
       reference: txRef,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("/api/create-paystack error:", err);
     return NextResponse.json(
-      { error: err?.message ?? String(err) },
+      { error: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }

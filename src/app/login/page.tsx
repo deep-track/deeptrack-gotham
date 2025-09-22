@@ -51,9 +51,10 @@ export default function Login() {
       } else {
         setErr("Something went wrong. Please try again.");
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { errors?: Array<{ longMessage?: string; message?: string }>; message?: string };
       const message =
-        e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Login failed";
+        error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error.message || "Login failed";
       setErr(message);
     } finally {
       setLoading(false);
@@ -69,9 +70,10 @@ export default function Login() {
         redirectUrl: "/sso-callback",
         redirectUrlComplete: "/",
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { errors?: Array<{ longMessage?: string; message?: string }>; message?: string };
       const message =
-        e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Google sign-in failed";
+        error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error.message || "Google sign-in failed";
       setErr(message);
     }
   }
@@ -123,6 +125,15 @@ export default function Login() {
             >
               {loading ? "Logging in..." : "Log In"}
             </button>
+
+            <div className="text-center">
+              <Link
+                href={`/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                className="text-sm text-blue-500 hover:text-blue-600 underline"
+              >
+                Forgot your password?
+              </Link>
+            </div>
           </form>
 
           <div className="flex items-center gap-4">
