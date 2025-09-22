@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import tursoDB from "@/lib/turso-db";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PUBLIC_ORIGIN =
@@ -8,13 +9,16 @@ const PUBLIC_ORIGIN =
 
 export async function POST(req: Request) {
   try {
+    // Ensure database is initialized (only once per server instance)
+    await ensureDbInitialized();
+
     // Server-side authentication check
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user details from Clerk
+    // Get user details from Clerk - cache this call
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
     const userEmail = user.emailAddresses[0]?.emailAddress;
@@ -54,10 +58,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure database tables are initialized
-    await tursoDB.initTables();
-
-    // Get or create user in our database
+    // Get or create user in our database (initTables is called once at startup)
     let dbUser = await tursoDB.getUserByEmail(userEmail);
     if (!dbUser) {
       dbUser = await tursoDB.createUser({
@@ -90,7 +91,7 @@ export async function POST(req: Request) {
     // Initialize Paystack transaction
     const paystackPayload = {
       email: userEmail,
-      amount: amountCents, // Amount in kobo (cents)
+      amount: amountCents * 100, // Amount is already in kobo (cents) from tokensToAmount
       reference: txRef,
       callback_url: callbackUrl,
       metadata: {
@@ -149,6 +150,9 @@ export async function POST(req: Request) {
 // GET endpoint to check user's current token balance
 export async function GET() {
   try {
+    // Ensure database is initialized (only once per server instance)
+    await ensureDbInitialized();
+
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -166,10 +170,7 @@ export async function GET() {
       );
     }
 
-    // Ensure database tables are initialized
-    await tursoDB.initTables();
-
-    // Get user from our database
+    // Get user from our database (initTables is called once at startup)
     let dbUser = await tursoDB.getUserByEmail(userEmail);
     if (!dbUser) {
       // Create user if doesn't exist

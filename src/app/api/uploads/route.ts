@@ -1,18 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import tursoDB from "@/lib/turso-db";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 export async function POST(req: Request) {
-  // Ensure database tables are initialized
-  try {
-    await tursoDB.initTables();
-  } catch (error) {
-    console.error("Failed to initialize database tables:", error);
-    return NextResponse.json(
-      { error: "Database initialization failed" },
-      { status: 500 }
-    );
-  }
+  // Ensure database is initialized (only once per server instance)
+  await ensureDbInitialized();
 
   // Get authenticated user
   const { userId } = await auth();

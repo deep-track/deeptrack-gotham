@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useClerk, useUser } from "@clerk/nextjs"
 import { createPortal } from "react-dom"
-import { Menu, Shield, History, LogIn, UserPlus, LogOut } from "lucide-react"
+import { Menu, Shield, History, LogIn, UserPlus, LogOut, Coins } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,6 +17,9 @@ import Link from "next/link"
 import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { TokenDisplay } from "@/components/tokens/token-display"
+import { TokenPurchase } from "@/components/tokens/token-purchase"
+import { SimpleTokenPurchase } from "@/components/tokens/simple-token-purchase"
 
 
 export function Header() {
@@ -159,6 +162,23 @@ const handleDelete = async () => {
                 </DropdownMenuItem>
               ))}
 
+              {/* Token Display for Mobile */}
+              {isSignedIn && (
+                <div className="px-3 py-2 border-t border-white/10">
+                  <TokenDisplay showPurchaseButton={false} />
+                  <div className="mt-3">
+                    <TokenPurchase
+                      trigger={
+                        <Button size="sm" className="w-full bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] hover:opacity-90">
+                          <Coins className="h-4 w-4 mr-2" />
+                          Buy Tokens
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
               {!isSignedIn ? (
                 <>
                   <DropdownMenuItem asChild>
@@ -221,6 +241,28 @@ const handleDelete = async () => {
               <span className="hidden sm:inline">{item.label}</span>
             </Link>
           ))}
+          
+          {/* Token Display */}
+          {isSignedIn && (
+            <div className="hidden xl:flex">
+              <TokenDisplay showPurchaseButton={true} />
+            </div>
+          )}
+
+          {/* Simple Token Purchase for smaller screens */}
+          {isSignedIn && (
+            <div className="hidden lg:flex xl:hidden">
+              <TokenPurchase
+                trigger={
+                  <Button size="sm" className="bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] hover:opacity-90">
+                    <Coins className="h-4 w-4 mr-2" />
+                    Buy Tokens
+                  </Button>
+                }
+              />
+            </div>
+          )}
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               {isSignedIn ? (

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { RealityDefender } from "@realitydefender/realitydefender";
 import tursoDB from "@/lib/turso-db";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,9 @@ const rd = new RealityDefender({
 
 export async function POST(req: Request) {
   try {
+    // Ensure database is initialized (only once per server instance)
+    await ensureDbInitialized();
+
     const { orderId } = await req.json();
 
     if (!orderId) {
@@ -32,6 +36,40 @@ export async function POST(req: Request) {
         { error: "No uploads found for order" },
         { status: 400 }
       );
+    }
+
+    // Deduct tokens for each upload (unless it's a paid order)
+    if (order.status !== "paid") {
+      // This is a token-based order, deduct tokens
+      const uploadCount = uploads.length;
+      
+      // Get user from the first upload's metadata
+      const firstUpload = uploads[0];
+      const userEmail = firstUpload?.metadata?.userEmail;
+      
+      if (
+        firstUpload &&
+        typeof userEmail === "string" &&
+        userEmail &&
+        !tursoDB.isDemoUser(userEmail)
+      ) {
+        const dbUser = await tursoDB.getUserByEmail(userEmail);
+        if (dbUser) {
+          const deductionResult = await tursoDB.deductTokens(dbUser.id, uploadCount);
+          if (!deductionResult.success) {
+            return NextResponse.json(
+              { 
+                error: "Insufficient tokens for processing",
+                details: deductionResult.error,
+                requiredTokens: uploadCount,
+                availableTokens: deductionResult.remainingTokens || 0
+              }, 
+              { status: 402 }
+            );
+          }
+          console.log(`Deducted ${uploadCount} tokens from user ${userEmail}`);
+        }
+      }
     }
 
     // Process the first upload (for now, could extend to handle multiple)

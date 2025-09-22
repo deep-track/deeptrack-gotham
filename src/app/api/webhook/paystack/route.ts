@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import tursoDB from "@/lib/turso-db";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 
@@ -26,8 +27,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // Ensure database tables are initialized
-    await tursoDB.initTables();
+    // Ensure database is initialized (only once per server instance)
+    await ensureDbInitialized();
 
     const payload = JSON.parse(rawBody);
     const event = payload.event;

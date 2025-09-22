@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import tursoDB from "@/lib/turso-db";
+import { ensureDbInitialized } from "@/lib/db-init";
 
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PUBLIC_ORIGIN =
@@ -8,6 +9,9 @@ const PUBLIC_ORIGIN =
 
 export async function POST(req: Request) {
   try {
+    // Ensure database is initialized (only once per server instance)
+    await ensureDbInitialized();
+
     // Server-side authentication check
     const { userId } = await auth();
     if (!userId) {

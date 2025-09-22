@@ -16,6 +16,8 @@ function PaymentPendingContent() {
   const router = useRouter();
   const orderId = search.get("orderId");
   const ref = search.get("ref");
+  const type = search.get("type"); // "tokens" for token purchases
+  const tokens = search.get("tokens"); // number of tokens being purchased
 
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,6 +57,12 @@ function PaymentPendingContent() {
         setLoading(false);
 
         if (result === "paid") {
+          // For token purchases, redirect to dashboard instead of results
+          if (type === "tokens") {
+            router.push("/");
+            return;
+          }
+          
           // redirect to results page with orderId and reference so the results page can resume processing
           router.push(
             `/results?orderId=${encodeURIComponent(orderId ?? "")}&ref=${encodeURIComponent(ref ?? "")}`,
@@ -164,14 +172,20 @@ function PaymentPendingContent() {
   const handleManualRecheck = async () => {
     setError(null);
     setAttempts(0);
-    try {
-      const result = await checkOnce();
-      if (result === "paid") {
-        router.push(
-          `/results?orderId=${encodeURIComponent(orderId ?? "")}&ref=${encodeURIComponent(ref ?? "")}`,
-        );
-      }
-    } catch (err: any) {
+      try {
+        const result = await checkOnce();
+        if (result === "paid") {
+          // For token purchases, redirect to dashboard instead of results
+          if (type === "tokens") {
+            router.push("/");
+            return;
+          }
+          
+          router.push(
+            `/results?orderId=${encodeURIComponent(orderId ?? "")}&ref=${encodeURIComponent(ref ?? "")}`,
+          );
+        }
+      } catch (err: any) {
       console.error("Manual re-check failed:", err);
       setError(err?.message || "Manual re-check failed");
     }
@@ -179,15 +193,24 @@ function PaymentPendingContent() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Payment pending</h1>
+      <h1 className="text-2xl font-semibold mb-4">
+        {type === "tokens" ? "Token Purchase Pending" : "Payment pending"}
+      </h1>
 
       <div className="mb-4">
         <p className="text-sm text-muted-foreground">
           Reference: <span className="font-mono">{ref ?? "—"}</span>
         </p>
-        <p className="text-sm text-muted-foreground">
-          Order: <span className="font-mono">{orderId ?? "—"}</span>
-        </p>
+        {type === "tokens" && tokens && (
+          <p className="text-sm text-muted-foreground">
+            Tokens: <span className="font-mono">{tokens}</span>
+          </p>
+        )}
+        {orderId && (
+          <p className="text-sm text-muted-foreground">
+            Order: <span className="font-mono">{orderId}</span>
+          </p>
+        )}
       </div>
 
       <div className="mb-6">
@@ -197,8 +220,10 @@ function PaymentPendingContent() {
         </p>
         {error && <p className="text-red-500 mt-2">{error}</p>}
         <p className="mt-2 text-sm text-muted-foreground">
-          We are verifying your payment. This page will update automatically
-          once the payment is confirmed.
+          {type === "tokens" 
+            ? "We are verifying your token purchase. This page will update automatically once the payment is confirmed and your tokens are added."
+            : "We are verifying your payment. This page will update automatically once the payment is confirmed."
+          }
         </p>
       </div>
 
@@ -213,13 +238,15 @@ function PaymentPendingContent() {
 
         <button
           onClick={() =>
-            router.push(
-              `/results?orderId=${encodeURIComponent(orderId ?? "")}&ref=${encodeURIComponent(ref ?? "")}`,
-            )
+            type === "tokens" 
+              ? router.push("/")
+              : router.push(
+                  `/results?orderId=${encodeURIComponent(orderId ?? "")}&ref=${encodeURIComponent(ref ?? "")}`,
+                )
           }
           className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium"
         >
-          Return to results
+          {type === "tokens" ? "Return to Dashboard" : "Return to results"}
         </button>
 
         <div className="ml-auto text-sm text-muted-foreground">

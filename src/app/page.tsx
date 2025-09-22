@@ -11,6 +11,10 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toaster";
+import { TokenDisplay } from "@/components/tokens/token-display";
+import { InsufficientTokensAlert } from "@/components/tokens/insufficient-tokens-alert";
+import { PaymentChoiceDialog } from "@/components/tokens/payment-choice-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   return (
@@ -23,11 +27,45 @@ export default function Dashboard() {
 function DashboardContent() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [userTokens, setUserTokens] = useState<number | null>(null);
+  const [isDemoUser, setIsDemoUser] = useState(false);
+  const [loadingTokens, setLoadingTokens] = useState(true);
+  const [showPaymentChoice, setShowPaymentChoice] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
   const router = useRouter();
   const search = useSearchParams();
   const orderIdParam = search?.get("orderId");
   const refParam = search?.get("ref");
   const { isLoaded, isSignedIn } = useUser();
+  const { toast } = useToast();
+
+  // Fetch user token data
+  const fetchUserTokens = async () => {
+    if (!isSignedIn) {
+      setLoadingTokens(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/purchase-tokens");
+      if (response.ok) {
+        const data = await response.json();
+        setUserTokens(data.tokens);
+        setIsDemoUser(data.isDemoUser);
+      }
+    } catch (error) {
+      console.error("Error fetching user tokens:", error);
+    } finally {
+      setLoadingTokens(false);
+    }
+  };
+
+  // Fetch tokens when user signs in
+  useEffect(() => {
+    if (isLoaded) {
+      fetchUserTokens();
+    }
+  }, [isLoaded, isSignedIn]);
 
   // If the user was redirected back from the payment provider, poll the
   // verification endpoint and resume to results when the payment is confirmed.
@@ -131,6 +169,58 @@ function DashboardContent() {
   const handleProceed = async () => {
     if (selectedFiles.length === 0) return;
 
+    // For signed-in users with tokens, show payment choice dialog
+    if (isSignedIn && !isDemoUser && userTokens !== null && userTokens > 0) {
+      setIsProcessing(true);
+      
+      try {
+        // Upload files first
+        const uploadPromises = selectedFiles.map(async (file: File) => {
+          const formData = new FormData();
+          formData.append("media", file);
+
+          const resp = await fetch("/api/uploads", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!resp.ok) {
+            const text = await resp.text().catch(() => "");
+            throw new Error(`Upload failed for ${file.name}: ${resp.status} ${text}`);
+          }
+
+          return resp.json();
+        });
+
+        const settled = await Promise.allSettled(uploadPromises);
+        const succeeded = settled
+          .filter((r) => r.status === "fulfilled")
+          .map((r: any) => r.value);
+
+        if (succeeded.length === 0) {
+          toast({
+            title: "Upload failed",
+            description: "All files failed to upload. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        setUploadedFiles(succeeded);
+        setShowPaymentChoice(true);
+      } catch (error) {
+        toast({
+          title: "Upload failed",
+          description: error instanceof Error ? error.message : "Failed to upload files",
+          variant: "destructive"
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+      return;
+    }
+
+    // For demo users or users without tokens, proceed with normal flow
     // Persist selected files metadata locally so the checkout can show previews.
     useDashboardStore.getState().setFiles(selectedFiles);
 
@@ -208,6 +298,78 @@ function DashboardContent() {
     }
   };
 
+  const handlePayWithTokens = async () => {
+    try {
+      // Create order for token-based payment
+      const orderResp = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploads: uploadedFiles.map((u: any) => u.uploadId || u.id),
+        }),
+      });
+
+      if (!orderResp.ok) {
+        const text = await orderResp.text().catch(() => "");
+        throw new Error(`Failed to create order: ${orderResp.status} ${text}`);
+      }
+
+      const { orderId } = await orderResp.json();
+
+      // Process order immediately for token payment
+      const processResp = await fetch("/api/process-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (!processResp.ok) {
+        throw new Error("Failed to process order");
+      }
+
+      const result = await processResp.json();
+      
+      // Store result and redirect to results page
+      useDashboardStore.getState().setResultData(result);
+      router.push(`/results?orderId=${encodeURIComponent(orderId)}`);
+    } catch (error) {
+      toast({
+        title: "Payment failed",
+        description: error instanceof Error ? error.message : "Failed to process token payment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePayWithCard = async () => {
+    try {
+      // Create order for card payment
+      const orderResp = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uploads: uploadedFiles.map((u: any) => u.uploadId || u.id),
+        }),
+      });
+
+      if (!orderResp.ok) {
+        const text = await orderResp.text().catch(() => "");
+        throw new Error(`Failed to create order: ${orderResp.status} ${text}`);
+      }
+
+      const { orderId } = await orderResp.json();
+
+      // Redirect to checkout for card payment
+      router.push(`/checkout?orderId=${encodeURIComponent(orderId)}`);
+    } catch (error) {
+      toast({
+        title: "Order creation failed",
+        description: error instanceof Error ? error.message : "Failed to create order",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -217,15 +379,35 @@ function DashboardContent() {
     >
       <Toaster />
       <header className="text-center sm:text-left space-y-3">
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
-          AI Media Verification
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
-          Upload all media files to verify their
-          authenticity using advanced AI detection algorithms.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0] bg-clip-text text-transparent">
+              AI Media Verification
+            </h1>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-lg">
+              Upload all media files to verify their
+              authenticity using advanced AI detection algorithms.
+            </p>
+          </div>
+          
+          {/* Token Display for Mobile/Tablet */}
+          {isSignedIn && (
+            <div className="xl:hidden">
+              <TokenDisplay showPurchaseButton={false} />
+            </div>
+          )}
+        </div>
         <hr className="border-t border-[hsl(var(--border))] opacity-20 mt-4" />
       </header>
+
+      {/* Insufficient Tokens Alert */}
+      {isSignedIn && !loadingTokens && !isDemoUser && userTokens !== null && userTokens < 1 && (
+        <InsufficientTokensAlert 
+          currentTokens={userTokens} 
+          requiredTokens={1}
+          className="mb-6"
+        />
+      )}
 
       {/* Upload Section */}
       <div className="relative rounded-[var(--radius-lg)] p-[2px] bg-gradient-to-r from-[hsl(var(--primary))] to-[#7F5AF0]">
@@ -255,7 +437,11 @@ function DashboardContent() {
       <div>
         <Button
           onClick={handleProceed}
-          disabled={selectedFiles.length === 0 || isProcessing}
+          disabled={
+            selectedFiles.length === 0 || 
+            isProcessing || 
+            (isSignedIn && !isDemoUser && (userTokens === null || userTokens < 1))
+          }
           className={cn(
             "w-full",
             "bg-gradient-to-r from-[hsl(var(--primary))]/60 to-[#7F5AF0]/70",
@@ -270,11 +456,24 @@ function DashboardContent() {
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Processing...
             </>
+          ) : isSignedIn && !isDemoUser && (userTokens === null || userTokens < 1) ? (
+            "Purchase Tokens to Continue"
           ) : (
             "Proceed to Checkout"
           )}
         </Button>
       </div>
+
+      {/* Payment Choice Dialog */}
+      <PaymentChoiceDialog
+        isOpen={showPaymentChoice}
+        onClose={() => setShowPaymentChoice(false)}
+        onPayWithTokens={handlePayWithTokens}
+        onPayWithCard={handlePayWithCard}
+        fileCount={uploadedFiles.length}
+        userTokens={userTokens || 0}
+        isDemoUser={isDemoUser}
+      />
     </motion.div>
   );
 }
