@@ -1,10 +1,11 @@
-import { useState } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
+import { PostHogProvider } from "@/components/posthog-provider";
 import Dashboard from "./app/page";
 import Results from "./app/results/page";
 import History from "./app/history/page";
@@ -19,27 +20,29 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <div className="min-h-screen bg-background text-foreground theme-transition">
-            <Header />
+        <PostHogProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <div className="min-h-screen bg-background text-foreground theme-transition">
+              <Header />
 
-            <div className="flex min-h-0 flex-1 relative">
+              <div className="flex min-h-0 flex-1 relative">
 
-              <main className="flex-1 p-4 overflow-auto">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/results" element={<Results />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="*" element={<NotFound />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/login" element={<Login />} />
-                </Routes>
-              </main>
+                <main className="flex-1 p-4 overflow-auto">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/results" element={<Results />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="*" element={<NotFound />} />
+                    <Route path="/signup" element={<Signup />} />
+                    <Route path="/login" element={<Login />} />
+                  </Routes>
+                </main>
+              </div>
             </div>
-          </div>
-        </BrowserRouter>
+          </BrowserRouter>
+        </PostHogProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

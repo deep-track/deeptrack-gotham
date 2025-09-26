@@ -3,10 +3,11 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+// import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Toaster } from "@/components/ui/toaster";
 import { useUser, useSignIn, useSignUp } from "@clerk/nextjs";
 import { useDashboardStore } from "@/lib/store";
+import { usePostHog } from "posthog-js/react";
 import Image from "next/image";
 
 export default function CheckoutPage() {
@@ -18,12 +19,29 @@ export default function CheckoutPage() {
 }
 
 function CheckoutPageContent() {
+  // Check if we're in build mode
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    return (
+      <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Checkout</h1>
+          <p className="text-gray-600">This page is not available during build.</p>
+        </div>
+      </div>
+    );
+  }
+
   const search = useSearchParams();
   const router = useRouter();
   const orderId = search?.get("orderId") ?? "";
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { isSignedIn, user } = useUser();
   const { isLoaded: signInLoaded, signIn, setActive } = useSignIn();
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
+  const posthog = usePostHog();
 
   const [order, setOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +97,14 @@ function CheckoutPageContent() {
     setAuthLoading(true);
     setError(null);
 
+    // Track authentication attempt
+    posthog.capture('payment_info_entered', {
+      cart_id: orderId,
+      user_type: authMode === 'signin' ? 'returning_user' : 'new_user',
+      auth_method: 'email_password',
+      email_domain: email.split('@')[1]
+    });
+
     try {
       if (authMode === 'signin') {
         if (!signIn) return;
@@ -89,6 +115,13 @@ function CheckoutPageContent() {
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId });
+          
+          // Track successful sign in
+          posthog.capture('user_signed_in', {
+            signin_method: 'email',
+            user_type: 'returning_user',
+            page_type: 'checkout'
+          });
         }
       } else {
         if (!signUp) return;
@@ -102,10 +135,25 @@ function CheckoutPageContent() {
         const completeSignUp = await signUp.attemptEmailAddressVerification({ code: "123456" });
         if (completeSignUp.status === 'complete') {
           await setActive({ session: completeSignUp.createdSessionId });
+          
+          // Track successful sign up
+          posthog.capture('user_signed_up', {
+            signup_method: 'email',
+            user_type: 'business_user',
+            email_domain: email.split('@')[1],
+            page_type: 'checkout'
+          });
         }
       }
     } catch (err: any) {
       setError(err?.errors?.[0]?.longMessage || err?.message || 'Authentication failed');
+      
+      // Track authentication failure
+      posthog.capture('auth_failed', {
+        auth_method: 'email_password',
+        error_message: err?.errors?.[0]?.longMessage || err?.message,
+        page_type: 'checkout'
+      });
     } finally {
       setAuthLoading(false);
     }
@@ -113,6 +161,15 @@ function CheckoutPageContent() {
 
   const handleGoogleAuth = async () => {
     if (!signIn) return;
+    
+    // Track Google auth attempt
+    posthog.capture('payment_info_entered', {
+      cart_id: orderId,
+      user_type: 'returning_user',
+      auth_method: 'google_oauth',
+      email_domain: 'google'
+    });
+    
     try {
       // Store current URL with orderId for after OAuth redirect
       sessionStorage.setItem('clerk_return_url', window.location.href);
@@ -124,6 +181,13 @@ function CheckoutPageContent() {
       });
     } catch (err: any) {
       setError(err?.message || 'Google sign-in failed');
+      
+      // Track Google auth failure
+      posthog.capture('auth_failed', {
+        auth_method: 'google_oauth',
+        error_message: err?.message,
+        page_type: 'checkout'
+      });
     }
   };
 
@@ -137,6 +201,16 @@ function CheckoutPageContent() {
       setError("Please sign in to continue with payment.");
       return;
     }
+
+    // Track checkout started
+    posthog.capture('checkout_started', {
+      cart_id: orderId,
+      user_type: 'business_user',
+      payment_method: 'paystack',
+      page_type: 'checkout',
+      order_value: order?.total || 0,
+      currency: 'KES'
+    });
 
     setLoading(true);
     try {
@@ -160,10 +234,28 @@ function CheckoutPageContent() {
         );
       }
 
+      // Track payment method selected
+      posthog.capture('payment_method_selected', {
+        cart_id: orderId,
+        payment_method: 'paystack',
+        payment_provider: 'paystack',
+        order_value: order?.total || 0,
+        currency: 'KES'
+      });
+
       window.location.href = url;
     } catch (err: any) {
       console.error("create-paystack error:", err);
       setError(err?.message || "Failed to initialize payment");
+      
+      // Track payment failure
+      posthog.capture('payment_failed', {
+        cart_id: orderId,
+        error_message: err?.message,
+        payment_method: 'paystack',
+        order_value: order?.total || 0,
+        currency: 'KES'
+      });
     } finally {
       setLoading(false);
     }

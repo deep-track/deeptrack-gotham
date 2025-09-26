@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Search, Filter, FileText, Check, X, Eye } from "lucide-react"
+import { Search, Filter, FileText, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { useDashboardStore } from '@/lib/store'
+import { usePostHog } from 'posthog-js/react'
 
 
 
@@ -27,6 +28,7 @@ export default function History() {
   const [error, setError] = useState<string | null>(null)
   const [resumingOrderId, setResumingOrderId] = useState<string | null>(null)
   const fetchAbortRef = useRef<AbortController | null>(null)
+  const posthog = usePostHog()
 
   const refreshHistory = async () => {
     // cancel any in-flight
@@ -52,6 +54,14 @@ export default function History() {
       const list = Array.isArray(json) ? json : []
       setOrders(list)
       setCachedOrders(list)
+      
+      // Track history viewed
+      posthog.capture('history_viewed', {
+        order_count: list.length,
+        user_type: 'authenticated',
+        filter_applied: activeFilter !== 'all',
+        search_term: searchTerm || null
+      });
     } catch (e: any) {
       if (e?.name === 'AbortError') return
       setError(e?.message || 'Failed to load history')
@@ -387,11 +397,27 @@ export default function History() {
                             {resumingOrderId === o.id ? 'Redirecting…' : 'Resume payment'}
                           </Button>
                         ) : o.status === 'paid' || o.status === 'processing' ? (
-                          <Button size="sm" variant="outline" onClick={() => router.push(`/results?orderId=${encodeURIComponent(o.id)}${o.paymentRef ? `&ref=${encodeURIComponent(o.paymentRef)}` : ''}`)}>
+                          <Button size="sm" variant="outline" onClick={() => {
+                            posthog.capture('results_viewed', {
+                              order_id: o.id,
+                              verification_status: o.status,
+                              source: 'history_page',
+                              user_type: 'authenticated'
+                            });
+                            router.push(`/results?orderId=${encodeURIComponent(o.id)}${o.paymentRef ? `&ref=${encodeURIComponent(o.paymentRef)}` : ''}`);
+                          }}>
                             View status
                           </Button>
                         ) : o.status === 'completed' && (o.hasResult || o.result) ? (
-                          <Button size="sm" onClick={() => router.push(`/results?orderId=${encodeURIComponent(o.id)}`)}>
+                          <Button size="sm" onClick={() => {
+                            posthog.capture('results_viewed', {
+                              order_id: o.id,
+                              verification_status: o.status,
+                              source: 'history_page',
+                              user_type: 'authenticated'
+                            });
+                            router.push(`/results?orderId=${encodeURIComponent(o.id)}`);
+                          }}>
                             View results
                           </Button>
                         ) : (

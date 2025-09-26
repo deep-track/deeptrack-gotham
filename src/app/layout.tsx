@@ -17,6 +17,26 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Check if we're in build mode or have placeholder values
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    // Return a simple layout without Clerk for build time
+    return (
+      <html lang="en" className={inter.className}>
+        <body>
+          <div className="min-h-screen flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4">
+              {children}
+            </div>
+          </div>
+        </body>
+      </html>
+    );
+  }
+
   return (
     <html lang="en" className={inter.className}>
       <body>

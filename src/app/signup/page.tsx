@@ -5,11 +5,29 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSignUp, useSignIn } from "@clerk/nextjs";
+import { usePostHog } from "posthog-js/react";
 
 export default function Signup() {
+  // Check if we're in build mode
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    return (
+      <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
+          <p className="text-gray-600">This page is not available during build.</p>
+        </div>
+      </div>
+    );
+  }
+
   const router = useRouter();
   const { isLoaded: signUpLoaded, signUp, setActive } = useSignUp();
   const { isLoaded: signInLoaded } = useSignIn();
+  const posthog = usePostHog();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -25,6 +43,14 @@ export default function Signup() {
     e.preventDefault();
     setErr(null);
     setLoading(true);
+
+    // Track signup attempt
+    posthog.capture('user_signed_up', {
+      signup_method: 'email',
+      user_type: 'business_user',
+      email_domain: email.split('@')[1],
+      page_type: 'signup'
+    });
 
     try {
       // validate email via backend
@@ -65,6 +91,13 @@ export default function Signup() {
       const message =
         e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || e.message || "Something went wrong";
       setErr(message);
+      
+      // Track signup failure
+      posthog.capture('auth_failed', {
+        auth_method: 'email_signup',
+        error_message: message,
+        page_type: 'signup'
+      });
     } finally {
       setLoading(false);
     }
@@ -82,6 +115,16 @@ export default function Signup() {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
+        
+        // Track successful signup completion
+        posthog.capture('user_signed_up', {
+          signup_method: 'email',
+          user_type: 'business_user',
+          email_domain: email.split('@')[1],
+          page_type: 'signup',
+          verification_completed: true
+        });
+        
         router.push("/login");
         return;
       }
@@ -91,6 +134,13 @@ export default function Signup() {
       console.error(e);
       const message = e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "Invalid code";
       setErr(message);
+      
+      // Track verification failure
+      posthog.capture('auth_failed', {
+        auth_method: 'email_verification',
+        error_message: message,
+        page_type: 'signup'
+      });
     } finally {
       setLoading(false);
     }

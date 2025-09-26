@@ -7,6 +7,22 @@ import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function ResetPasswordForm() {
+    // Check if we're in build mode
+    const isBuildMode = process.env.NODE_ENV === 'production' && 
+      (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+    if (isBuildMode) {
+        return (
+            <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold mb-4">Reset Password</h1>
+                    <p className="text-gray-600">This page is not available during build.</p>
+                </div>
+            </div>
+        );
+    }
+
     const { isLoaded, signIn, setActive } = useSignIn();
     const { isSignedIn } = useAuth();
     const router = useRouter();

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { UploadArea } from "@/components/upload/upload-area";
@@ -15,6 +15,7 @@ import { TokenDisplay } from "@/components/tokens/token-display";
 import { InsufficientTokensAlert } from "@/components/tokens/insufficient-tokens-alert";
 import { PaymentChoiceDialog } from "@/components/tokens/payment-choice-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { usePostHog } from "posthog-js/react";
 
 export default function Dashboard() {
   return (
@@ -25,9 +26,26 @@ export default function Dashboard() {
 }
 
 function DashboardContent() {
+  // Check if we're in build mode
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    return (
+      <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+          <p className="text-gray-600">This page is not available during build.</p>
+        </div>
+      </div>
+    );
+  }
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [userTokens, setUserTokens] = useState<number | null>(null);
+  const posthog = usePostHog();
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
@@ -169,6 +187,14 @@ function DashboardContent() {
   const handleProceed = async () => {
     if (selectedFiles.length === 0) return;
 
+    // Track file upload started
+    posthog.capture('file_upload_started', {
+      file_count: selectedFiles.length,
+      total_file_size: selectedFiles.reduce((sum, file) => sum + file.size, 0),
+      file_types: selectedFiles.map(file => file.type),
+      user_type: isSignedIn ? 'authenticated' : 'anonymous'
+    });
+
     // For signed-in users with tokens, show payment choice dialog
     if (isSignedIn && !isDemoUser && userTokens !== null && userTokens > 0) {
       setIsProcessing(true);
@@ -203,8 +229,24 @@ function DashboardContent() {
             description: "All files failed to upload. Please try again.",
             variant: "destructive"
           });
+          
+          // Track upload failure
+          posthog.capture('file_upload_failed', {
+            file_count: selectedFiles.length,
+            error_type: 'all_uploads_failed',
+            user_type: 'authenticated'
+          });
           return;
         }
+
+        // Track successful file upload
+        posthog.capture('file_upload_completed', {
+          file_count: succeeded.length,
+          total_file_size: selectedFiles.reduce((sum, file) => sum + file.size, 0),
+          file_types: selectedFiles.map(file => file.type),
+          user_type: 'authenticated',
+          upload_method: 'token_payment_choice'
+        });
 
         setUploadedFiles(succeeded);
         setShowPaymentChoice(true);
@@ -300,6 +342,14 @@ function DashboardContent() {
 
   const handlePayWithTokens = async () => {
     try {
+      // Track token payment method selected
+      posthog.capture('payment_method_selected', {
+        payment_method: 'tokens',
+        file_count: uploadedFiles.length,
+        user_type: 'authenticated',
+        token_balance: userTokens
+      });
+
       // Create order for token-based payment
       const orderResp = await fetch("/api/orders", {
         method: "POST",
@@ -316,6 +366,16 @@ function DashboardContent() {
 
       const { orderId } = await orderResp.json();
 
+      // Track checkout started for token payment
+      posthog.capture('checkout_started', {
+        cart_id: orderId,
+        user_type: 'business_user',
+        payment_method: 'tokens',
+        page_type: 'dashboard',
+        order_value: uploadedFiles.length * 100, // Assuming 100 tokens per file
+        currency: 'KES'
+      });
+
       // Process order immediately for token payment
       const processResp = await fetch("/api/process-order", {
         method: "POST",
@@ -329,10 +389,26 @@ function DashboardContent() {
 
       const result = await processResp.json();
       
+      // Track token usage
+      posthog.capture('token_used', {
+        order_id: orderId,
+        token_amount: uploadedFiles.length,
+        token_balance_after: userTokens ? userTokens - uploadedFiles.length : 0,
+        verification_type: 'media_verification'
+      });
+      
       // Store result and redirect to results page
       useDashboardStore.getState().setResultData(result);
       router.push(`/results?orderId=${encodeURIComponent(orderId)}`);
     } catch (error) {
+      // Track token payment failure
+      posthog.capture('payment_failed', {
+        payment_method: 'tokens',
+        error_message: error instanceof Error ? error.message : "Unexpected error",
+        file_count: uploadedFiles.length,
+        user_type: 'authenticated'
+      });
+      
       toast({
         title: "Payment failed",
         description: error instanceof Error ? error.message : "Failed to process token payment",

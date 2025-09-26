@@ -361,7 +361,7 @@ class MockDB {
         this.startProcessing(id);
       } catch (err) {
         // log but do not throw
-        // eslint-disable-next-line no-console
+         
         console.error("startProcessing simulation failed for order", id, err);
       }
     }, 100); // small delay to allow webhook handling to finish
@@ -424,7 +424,7 @@ class MockDB {
         updated.updatedAt = nowIso();
         this.orders.set(id, updated);
       } catch (err) {
-        // eslint-disable-next-line no-console
+         
         console.error("Error during simulated processing for order", id, err);
         const failed = this.orders.get(id);
         if (failed) {

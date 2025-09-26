@@ -4,6 +4,15 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 
 export default function EnsureFullName() {
+  // Check if we're in build mode
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    return null; // Return nothing for build mode
+  }
+
   const { user, isLoaded } = useUser();
   const [showModal, setShowModal] = useState(false);
   const [fullName, setFullName] = useState("");

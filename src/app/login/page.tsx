@@ -5,11 +5,29 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
+import { usePostHog } from "posthog-js/react";
 
 export default function Login() {
+  // Check if we're in build mode
+  const isBuildMode = process.env.NODE_ENV === 'production' && 
+    (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+
+  if (isBuildMode) {
+    return (
+      <div className="min-h-screen w-full max-w-5xl mx-auto flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Login</h1>
+          <p className="text-gray-600">This page is not available during build.</p>
+        </div>
+      </div>
+    );
+  }
+
   const { isLoaded, signIn, setActive } = useSignIn();
   const { isSignedIn } = useAuth();
   const router = useRouter();
+  const posthog = usePostHog();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,6 +57,14 @@ export default function Login() {
     setErr(null);
     setLoading(true);
 
+    // Track login attempt
+    posthog.capture('user_signed_in', {
+      signin_method: 'email',
+      user_type: 'returning_user',
+      email_domain: email.split('@')[1],
+      page_type: 'login'
+    });
+
     try {
       const result = await signIn.create({
         identifier: email,
@@ -50,12 +76,26 @@ export default function Login() {
         router.push("/");
       } else {
         setErr("Something went wrong. Please try again.");
+        
+        // Track login failure
+        posthog.capture('auth_failed', {
+          auth_method: 'email_password',
+          error_message: 'Incomplete signin',
+          page_type: 'login'
+        });
       }
     } catch (e: unknown) {
       const error = e as { errors?: Array<{ longMessage?: string; message?: string }>; message?: string };
       const message =
         error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error.message || "Login failed";
       setErr(message);
+      
+      // Track login failure
+      posthog.capture('auth_failed', {
+        auth_method: 'email_password',
+        error_message: message,
+        page_type: 'login'
+      });
     } finally {
       setLoading(false);
     }
@@ -64,6 +104,15 @@ export default function Login() {
   // Google OAuth
   async function loginWithGoogle() {
     if (!isLoaded || !signIn) return;
+    
+    // Track Google login attempt
+    posthog.capture('user_signed_in', {
+      signin_method: 'google',
+      user_type: 'returning_user',
+      email_domain: 'google',
+      page_type: 'login'
+    });
+    
     try {
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
@@ -75,6 +124,13 @@ export default function Login() {
       const message =
         error?.errors?.[0]?.longMessage || error?.errors?.[0]?.message || error.message || "Google sign-in failed";
       setErr(message);
+      
+      // Track Google login failure
+      posthog.capture('auth_failed', {
+        auth_method: 'google_oauth',
+        error_message: message,
+        page_type: 'login'
+      });
     }
   }
 

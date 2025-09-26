@@ -9,6 +9,7 @@ import { AnalysisCard } from '@/components/verification/analysis-card';
 import { useDashboardStore } from "@/lib/store";
 import { useEffect, useState } from 'react';
 import type { ResultData } from '@/lib/store';
+import { usePostHog } from 'posthog-js/react';
 
 
 
@@ -33,6 +34,7 @@ function ResultsContent() {
   const resultData = useDashboardStore((state) => state.resultData);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<string>('checking');
+  const posthog = usePostHog();
   
   const orderId = searchParams.get('orderId');
   const ref = searchParams.get('ref');
@@ -45,6 +47,18 @@ function ResultsContent() {
       // Regular flow - just show results from store
       const timer = setTimeout(() => {
         setIsLoading(false);
+        
+        // Track results viewed
+        if (resultData && resultData.length > 0) {
+          const firstResult = resultData[0];
+          posthog.capture('results_viewed', {
+            order_id: orderId || 'unknown',
+            verification_status: firstResult.result?.status || 'unknown',
+            file_count: resultData.length,
+            confidence_score: firstResult.result?.score || 0,
+            user_type: 'authenticated'
+          });
+        }
       }, 1500);
       return () => clearTimeout(timer);
     }
@@ -82,10 +96,28 @@ function ResultsContent() {
         // Payment confirmed, load results from order
         await loadOrderResults(targetOrderId);
         setIsLoading(false);
+        
+        // Track purchase confirmed (client-side fallback)
+        posthog.capture('purchase_confirmed', {
+          order_id: targetOrderId,
+          payment_method: 'paystack',
+          payment_provider: 'paystack',
+          verification_status: 'processing',
+          user_type: 'authenticated'
+        });
       } else if (data.status === 'paid') {
         // Payment confirmed but no orderId - show success message
         setPaymentStatus('paid');
         setIsLoading(false);
+        
+        // Track purchase confirmed (client-side fallback)
+        posthog.capture('purchase_confirmed', {
+          order_id: orderId || 'unknown',
+          payment_method: 'paystack',
+          payment_provider: 'paystack',
+          verification_status: 'processing',
+          user_type: 'authenticated'
+        });
       } else {
         // Still checking or failed
         setPaymentStatus(data.status || 'pending');

@@ -24,7 +24,7 @@ export async function GET(
 
     // 1) Try to find an existing order by stored paymentRef
     const orders = await tursoDB.listOrders();
-    let order = orders.find((o: any) => o.paymentRef === reference);
+    const order = orders.find((o: any) => o.paymentRef === reference);
 
     if (order && order.status === "paid") {
       return NextResponse.json({ status: "paid", orderId: order.id });
