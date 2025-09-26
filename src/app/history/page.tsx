@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { useDashboardStore } from '@/lib/store'
-import { usePostHog } from 'posthog-js/react'
+import posthog from 'posthog-js'
 
 
 
@@ -28,7 +28,7 @@ export default function History() {
   const [error, setError] = useState<string | null>(null)
   const [resumingOrderId, setResumingOrderId] = useState<string | null>(null)
   const fetchAbortRef = useRef<AbortController | null>(null)
-  const posthog = usePostHog()
+  // PostHog is now available globally via instrumentation-client.ts
 
   const refreshHistory = async () => {
     // cancel any in-flight

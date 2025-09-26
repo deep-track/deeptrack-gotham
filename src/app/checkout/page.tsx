@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useUser, useSignIn, useSignUp } from "@clerk/nextjs";
 import { useDashboardStore } from "@/lib/store";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 import Image from "next/image";
 
 export default function CheckoutPage() {
@@ -41,7 +41,7 @@ function CheckoutPageContent() {
   const { isSignedIn, user } = useUser();
   const { isLoaded: signInLoaded, signIn, setActive } = useSignIn();
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
-  const posthog = usePostHog();
+  // PostHog is now available globally via instrumentation-client.ts
 
   const [order, setOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);

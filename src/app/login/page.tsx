@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSignIn, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 
 export default function Login() {
   // Check if we're in build mode
@@ -27,7 +27,7 @@ export default function Login() {
   const { isLoaded, signIn, setActive } = useSignIn();
   const { isSignedIn } = useAuth();
   const router = useRouter();
-  const posthog = usePostHog();
+  // PostHog is now available globally via instrumentation-client.ts
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -20,7 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Check if we're in build mode or have placeholder values
   const isBuildMode = process.env.NODE_ENV === 'production' && 
     (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 
-     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key'));
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('your_clerk_publishable_key') ||
+     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes('placeholder'));
 
   if (isBuildMode) {
     // Return a simple layout without Clerk for build time

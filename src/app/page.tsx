@@ -15,7 +15,7 @@ import { TokenDisplay } from "@/components/tokens/token-display";
 import { InsufficientTokensAlert } from "@/components/tokens/insufficient-tokens-alert";
 import { PaymentChoiceDialog } from "@/components/tokens/payment-choice-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { usePostHog } from "posthog-js/react";
+import posthog from "posthog-js";
 
 export default function Dashboard() {
   return (
@@ -45,7 +45,7 @@ function DashboardContent() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [userTokens, setUserTokens] = useState<number | null>(null);
-  const posthog = usePostHog();
+  // PostHog is now available globally via instrumentation-client.ts
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [loadingTokens, setLoadingTokens] = useState(true);
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
@@ -77,6 +77,18 @@ function DashboardContent() {
       setLoadingTokens(false);
     }
   };
+
+  // Test PostHog event on component mount
+  useEffect(() => {
+    if (posthog) {
+      posthog.capture('dashboard_loaded', {
+        user_type: isSignedIn ? 'authenticated' : 'anonymous',
+        page_type: 'dashboard',
+        timestamp: new Date().toISOString()
+      });
+      console.log('PostHog test event sent: dashboard_loaded');
+    }
+  }, [posthog, isSignedIn]);
 
   // Fetch tokens when user signs in
   useEffect(() => {

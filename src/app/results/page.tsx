@@ -9,7 +9,7 @@ import { AnalysisCard } from '@/components/verification/analysis-card';
 import { useDashboardStore } from "@/lib/store";
 import { useEffect, useState } from 'react';
 import type { ResultData } from '@/lib/store';
-import { usePostHog } from 'posthog-js/react';
+import posthog from 'posthog-js';
 
 
 
@@ -34,7 +34,7 @@ function ResultsContent() {
   const resultData = useDashboardStore((state) => state.resultData);
   const [isLoading, setIsLoading] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<string>('checking');
-  const posthog = usePostHog();
+  // PostHog is now available globally via instrumentation-client.ts
   
   const orderId = searchParams.get('orderId');
   const ref = searchParams.get('ref');
