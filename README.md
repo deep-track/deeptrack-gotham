@@ -1,4 +1,4 @@
-# DeepTrack Gotham - AI Media Verification Platform
+# Deeptrack Gotham - Deepfakes detection platform  
 
 A secure Next.js application for AI-powered media verification with integrated payment processing and user authentication.
 
